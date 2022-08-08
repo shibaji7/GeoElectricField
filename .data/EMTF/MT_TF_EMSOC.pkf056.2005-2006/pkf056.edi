@@ -1,0 +1,277 @@
+>HEAD
+   DATAID=pkf2005
+   ACQBY="UCR                           "
+   FILEBY="UCR                           "
+   ACQDATE=06/23/05
+   FILEDATE=01/23/06
+   PROSPECT=pkf2005                       
+   LOC=pkf056                        
+   LAT=+35:51:27.1                   
+   LONG=-120:33:15.2                  
+   STDVERS="SEG 1.01"
+   PROGVERS="NIMSEDI_V1"
+   PROGDATE=01/21/06
+   MAXSECT=100
+   EMPTY=1.0E+32
+
+>INFO
+   MAXINFO=256
+C /mnt/D/data/nims/Pkf/pkf056a  <== data read from this directory               
+C                                                                               
+C   35.85752  <== latitude (degrees north of equator)                           
+C -120.55422  <== longitude (degrees east of Greenwich)                         
+C      505.3  <== elevation (meters above sea level)                            
+C       14.4  <== declination (degrees east of north)                           
+C                                                                               
+C   START: echo of hdr.tmp                                                      
+C                                                                               
+C user field (not more than 950 characters)                                     
+C "pkf056a"  <-- "EXPERIMENT CODE+SITE NUMBER+RUN LETTER"                       
+C 2501-15     <-- SYSTEM BOX I.D.; MAG HEAD ID (if different)                   
+C 90.  0. <-- N-S E WIRE LENGTH (m); HEADING (deg E mag N)                      
+C 72. 90. <-- E-W E WIRE LENGTH (m); HEADING (deg E mag N)                      
+C COMMENTS: Mag is oriented along magnetic coords.                              
+C   END: echo of hdr.tmp                                                        
+C                                                                               
+C NIMS logger: MT1                                                              
+C                                                                               
+C MT time series scalings:                                                      
+C Magnetic:                                                                     
+C  to convert Hx Hy Hz to nT: divide by 100                                     
+C Electric:                                                                     
+C  E counts have hardware gain of 20 or 200                                     
+C  low gain E has software gain of 10                                           
+C   thus E field counts always have overall gain of 200                         
+C   to convert Ex Ey to mv at input: multiply by 2.441406e-6                    
+C   to convert mv to mv/km: multiply by 1000/[dipole length(m)]                 
+C                                                                               
+C MT filters:                                                                   
+C NOTE: Group delay model for a lowpass filter implies that                     
+C       filter delays signal with unity gain. It becomes more                   
+C       accurate as period increases.                                           
+C Magnetic field - 3 pole Butterworth LOWPASS                                   
+C  corner PERIOD    GROUP DELAY (sec):                                          
+C   Hx     0.5         0.159                                                    
+C   Hy     0.5         0.159                                                    
+C   Hz     0.5         0.159                                                    
+C Electric field - 5 pole Butterworth LOWPASS                                   
+C  corner PERIOD    GROUP DELAY (sec):                                          
+C   Ex     0.5         0.2575                                                   
+C   Ey     0.5         0.2575                                                   
+C Electric field - 1 pole Butterworth HIGHPASS                                  
+C  corner PERIOD    TIME CONSTANT (sec):                                        
+C   Ex     37699       6000                                                     
+C   Ey     37699       6000                                                     
+C                                                                               
+C MT sample time offsets:                                                       
+C    ( 0 implies sample time earlier than clock time = FAST clock)              
+C          Absolute   Relative to Hx (including group delays)                   
+C    Hx    0.2455       0.0000 seconds                                          
+C    Hy    0.2365      -0.0090 seconds                                          
+C    Hz    0.2275      -0.0180 seconds                                          
+C    Ex    0.1525      -0.0055 seconds                                          
+C    Ey    0.1525      -0.0055 seconds                                          
+C                                                                               
+C FILTER NOTES:                                                                 
+C NOTE1: There is an inhererent E field digitization time                       
+C       uncertainty of +/-0.002 sec. This results in a phase                    
+C       uncertainity at 1 and 3 sec period of 0.7 and 0.2 deg.                  
+C NOTE2: Timing is designed so that lowpass filter group delays                 
+C       almost cancel relative timing offsets. If relative                      
+C       timing errors are ignored, impedance phase errors                       
+C       at 1, 2 & 3 secs period are 2, 1 & 0.7 deg. The phase                   
+C       errors due to the inadequacy of the group delay model                   
+C       at 1 and 2 secs are 0.5 and 0.05 deg                                    
+C CONCLUSION: At periods larger than 3 sec, one can assume that                 
+C       the data channels are simultaneous and completely                       
+C       ignore the existence of the low pass filters with a                     
+C       worst case phase uncertainity of 1 deg.                                 
+C NOTE3: The response of a 1 pole Butterworth HiPass filter:                    
+C            Gain = 1 / sqrt[ 1 + (T/Tc)^2 ]                                    
+C            phase =  - atan [ T/Tc ]   (output leads input)                    
+C        where T=period and Tc is the cutoff period given above                 
+C        The phase lead is 15 deg at 10,000 sec and 5.5 deg at                  
+C        3600 s. This filter MUST NOT be ignored                                
+C                                                                               
+C Temperature data decimated by:  60                                            
+C Temperature data converted using:                                             
+C   nominal 0 offset: 18048 counts                                              
+C   nominal slope: 70 counts/deg C                                              
+C                                                                               
+C 8 hz MT data decimated to 4 hz using scans 2,4,6,8                            
+C                                                                               
+C      1555408          <== total number of data scans                          
+C    1.00000            <== data scan interval (seconds)                        
+C  2005  6 23 17 34 17  <== 1st data scan (y m d h m s)                         
+C  2005  6 15  0  0  0  <== global clock zero (y m d h m s)                     
+  
+>=DEFINEMEAS
+   MAXCHAN=7
+   MAXRUN=999
+   MAXMEAS=200
+   UNITS=M
+   REFTYPE=CART
+   REFLOC=pkf056                        
+   REFLAT=+35:51:27.1                   
+   REFLONG=-120:33:15.2                  
+   REFELEV=0
+>HMEAS ID= 0561.056 CHTYPE=HX X=      0. Y=      0. Z=    0.
+   AZM= 14 ACQCHAN=CH1 SENSOR=250115  
+>HMEAS ID= 0562.056 CHTYPE=HY X=      0. Y=      0. Z=    0.
+   AZM=104 ACQCHAN=CH2 SENSOR=250115  
+>HMEAS ID= 0563.056 CHTYPE=HZ X=      0. Y=      0. Z=    0.
+   AZM=  0 ACQCHAN=CH3 SENSOR=250115  
+>EMEAS ID= 0564.056 CHTYPE=EX X=      0. Y=      0. Z=    0.
+   X2=     90. Y2=      0. ACQCHAN=CH4
+>EMEAS ID= 0565.056 CHTYPE=EY X=      0. Y=      0. Z=    0.
+   X2=      0. Y2=     72. ACQCHAN=CH5
+>HMEAS ID= 0991.099 CHTYPE=HX X=      0. Y=      0. Z=    0.
+   AZM=  0 ACQCHAN=CH1 SENSOR= sao001 
+>HMEAS ID= 0992.099 CHTYPE=HY X=      0. Y=      0. Z=    0.
+   AZM= 90 ACQCHAN=CH2 SENSOR= sao001 
+  
+>=MTSECT
+   SECTID=UCR056
+   NFREQ=26
+   HZ=0563.056
+   EX=0564.056
+   EY=0565.056
+   HX=0561.056
+   HY=0562.056
+   HX=0991.099
+   HY=0992.099
+   
+>FREQ //  26
+  .25000000E+00  .16000000E+00  .11110000E+00  .81629999E-01  .62500000E-01
+  .49380001E-01  .39999999E-01  .27780000E-01  .20409999E-01  .15629999E-01
+  .12350000E-01  .99999998E-02  .69439998E-02  .51020002E-02  .39059999E-02
+  .30860000E-02  .24999999E-02  .16000000E-02  .11110000E-02  .81629999E-03
+  .62499999E-03  .39999999E-03  .19999999E-03  .99999997E-04  .75000004E-04
+  .49999999E-04
+>ZXXR             ROT=NORTH     //  26
+  .83177894E-01  .93190320E-01  .83962031E-01  .61019391E-01  .30571686E-01
+ -.33888069E-02 -.36106132E-01 -.87469183E-01 -.12166271E+00 -.13852410E+00
+ -.14679903E+00 -.14867570E+00 -.14366512E+00 -.13548356E+00 -.12839563E+00
+ -.12237592E+00 -.11789658E+00 -.11246134E+00 -.11148373E+00 -.10991397E+00
+ -.10969840E+00 -.10511237E+00 -.88893034E-01 -.65553524E-01 -.55275511E-01
+ -.41396577E-01
+>ZXXI             ROT=NORTH     //  26
+  .22331929E-01  .64870134E-01  .10599308E+00  .13834482E+00  .15929487E+00
+  .16780850E+00  .16498600E+00  .14340982E+00  .11211047E+00  .84052905E-01
+  .60519196E-01  .41438758E-01  .16612427E-01  .28754137E-02 -.47185351E-02
+ -.88008391E-02 -.10494546E-01 -.11596899E-01 -.12232407E-01 -.13729356E-01
+ -.15815536E-01 -.21560384E-01 -.29573273E-01 -.33109259E-01 -.32911513E-01
+ -.31031454E-01
+>ZXYR             ROT=NORTH     //  26
+  .16783488E+01  .15622462E+01  .14462146E+01  .13456123E+01  .12608081E+01
+  .11927332E+01  .11436145E+01  .10466822E+01  .95880872E+00  .87265062E+00
+  .78788155E+00  .71672666E+00  .60043728E+00  .51383454E+00  .44848225E+00
+  .39852113E+00  .35726488E+00  .28422931E+00  .23516428E+00  .20083091E+00
+  .17707387E+00  .14403085E+00  .10621127E+00  .79241328E-01  .70260510E-01
+  .59234254E-01
+>ZXYI             ROT=NORTH     //  26
+  .17133172E+01  .12688079E+01  .10107754E+01  .85032094E+00  .74565828E+00
+  .67648649E+00  .63345104E+00  .58229947E+00  .55424815E+00  .53381288E+00
+  .51596218E+00  .49542838E+00  .44777703E+00  .40289843E+00  .36436370E+00
+  .33301613E+00  .30519694E+00  .25152567E+00  .21128537E+00  .18209000E+00
+  .16049489E+00  .12762502E+00  .87130673E-01  .55834297E-01  .45360550E-01
+  .32826029E-01
+>ZYXR             ROT=NORTH     //  26
+ -.28575711E+01 -.25804634E+01 -.23498409E+01 -.21559019E+01 -.19906296E+01
+ -.18454528E+01 -.17182626E+01 -.15106614E+01 -.13489000E+01 -.12243848E+01
+ -.11239529E+01 -.10440819E+01 -.92767674E+00 -.84654170E+00 -.78552568E+00
+ -.73713607E+00 -.69858110E+00 -.62408513E+00 -.56963050E+00 -.52238309E+00
+ -.48859009E+00 -.43375579E+00 -.33630392E+00 -.23332334E+00 -.19338366E+00
+ -.14250223E+00
+>ZYXI             ROT=NORTH     //  26
+ -.17646742E+01 -.15240192E+01 -.13534167E+01 -.12257597E+01 -.11262044E+01
+ -.10482979E+01 -.98864782E+00 -.88704807E+00 -.80028117E+00 -.72597653E+00
+ -.66031665E+00 -.60682076E+00 -.51932883E+00 -.45534676E+00 -.40817016E+00
+ -.37272206E+00 -.34514302E+00 -.29713908E+00 -.26769724E+00 -.24878989E+00
+ -.23706469E+00 -.22094584E+00 -.19740708E+00 -.16907769E+00 -.15569706E+00
+ -.13549444E+00
+>ZYYR             ROT=NORTH     //  26
+ -.88777000E+00 -.82254475E+00 -.73302156E+00 -.64133996E+00 -.55447841E+00
+ -.47576383E+00 -.40494972E+00 -.27883193E+00 -.17239651E+00 -.81982829E-01
+ -.44373190E-02  .58159970E-01  .15391587E+00  .21729474E+00  .25275031E+00
+  .30536765E+00  .27242443E+00  .20891404E+00 -.20625484E+00 -.13228378E+00
+  .11270507E+00  .19794641E+00  .16652976E+00  .13291739E+00  .11919021E+00
+  .10060265E+00
+>ZYYI             ROT=NORTH     //  26
+ -.11098702E+01 -.93913662E+00 -.83447689E+00 -.76538998E+00 -.71583652E+00
+ -.67460120E+00 -.63567924E+00 -.57999682E+00 -.53607863E+00 -.49907997E+00
+ -.46006405E+00 -.42162973E+00 -.34470496E+00 -.27042443E+00 -.20457275E+00
+  .41975766E-01  .10991631E+00 -.16325080E+00 -.13086443E+00  .18382502E+00
+  .18611282E+00 -.24311924E-01  .34977652E-01  .28998846E-01  .24774278E-01
+  .18096955E-01
+>ZXX.VAR          ROT=NORTH     //  26
+  .15991614E+01  .44727482E-01  .38962346E-02  .69468666E-03  .20035679E-03
+  .78688397E-04  .45064033E-04  .22544307E-04  .15987502E-04  .13945312E-04
+  .14771789E-04  .14862290E-04  .13155598E-04  .11370772E-04  .91588136E-05
+  .90997737E-05  .78778903E-05  .69076627E-05  .64634783E-05  .75954449E-05
+  .13642992E-04  .48095353E-04  .32260283E-03  .13355867E-02  .21389879E-02
+  .36909929E-02
+>ZXY.VAR          ROT=NORTH     //  26
+  .15730259E+01  .46912450E-01  .44021741E-02  .84873755E-03  .26493936E-03
+  .11644763E-03  .74309384E-04  .41411069E-04  .31422762E-04  .29397657E-04
+  .29704333E-04  .28525927E-04  .26139851E-04  .21985670E-04  .18594536E-04
+  .19505746E-04  .18728948E-04  .18926612E-04  .18836101E-04  .18126808E-04
+  .31393694E-04  .10193000E-03  .65830629E-03  .21863934E-02  .30335225E-02
+  .40601334E-02
+>ZYX.VAR          ROT=NORTH     //  26
+  .20302753E+01  .69536515E-01  .68523982E-02  .13163848E-02  .39622671E-03
+  .15567923E-03  .90679292E-04  .44468914E-04  .28613351E-04  .26259255E-04
+  .30452575E-04  .30604984E-04  .27832757E-04  .22800308E-04  .16121823E-04
+  .17806769E-04  .15440388E-04  .15914316E-04  .21593425E-04  .36169538E-04
+  .80206773E-04  .39643102E-03  .38130844E-02  .21056946E-01  .37713654E-01
+  .75604960E-01
+>ZYY.VAR          ROT=NORTH     //  26
+  .37259457E+01  .12369943E+00  .11851684E-01  .22194106E-02  .65255899E-03
+  .25857514E-03  .14069928E-03  .66856097E-04  .37985010E-04  .37858521E-04
+  .52492764E-04  .59940314E-04  .64134576E-04  .57937083E-04  .43862812E-04
+  .43585002E-04  .35787587E-04  .38304774E-04  .45488767E-04  .55454100E-04
+  .12478301E-03  .67801896E-03  .70949174E-02  .38036052E-01  .64071849E-01
+  .11219450E+00
+>TXR.EXP //  26
+  .79902336E-01  .15118088E+00  .18169138E+00  .18605305E+00  .17725897E+00
+  .16108222E+00  .13950065E+00  .10800352E+00  .91495708E-01  .84306285E-01
+  .80710337E-01  .78135446E-01  .81844315E-01  .91876313E-01  .10586863E+00
+  .12124611E+00  .13775852E+00  .17252447E+00  .19802253E+00  .21176466E+00
+  .22610432E+00  .25512546E+00  .24653889E+00  .17538278E+00  .13946357E+00
+  .91647536E-01
+>TXI.EXP //  26
+ -.13702327E+00 -.10037692E+00 -.52285358E-01 -.12837349E-01  .14069072E-01
+  .32635216E-01  .43936320E-01  .40737133E-01  .30417718E-01  .15707819E-01
+ -.16788847E-02 -.14220388E-01 -.34599684E-01 -.53242322E-01 -.68415932E-01
+ -.78544527E-01 -.83562918E-01 -.84031433E-01 -.77483617E-01 -.67368113E-01
+ -.53205509E-01 -.26009312E-01  .61102738E-02  .72011765E-03 -.66174688E-02
+ -.15053102E-01
+>TYR.EXP //  26
+  .15331025E+00  .16373400E+00  .15823387E+00  .14232376E+00  .11965032E+00
+  .93360052E-01  .63784346E-01 -.82154013E-01 -.12594891E+00 -.96494108E-01
+  .22513045E-01  .96333832E-01  .11114328E+00 -.21329150E-01 -.11367433E+00
+ -.10763928E+00 -.25313742E-01  .49996115E-01  .10532514E+00  .14645870E+00
+  .18292467E+00  .22676881E+00  .27006418E+00  .27145663E+00  .26185882E+00
+  .24097197E+00
+>TYI.EXP //  26
+ -.11306516E+00 -.46751920E-01  .72234659E-02  .50580349E-01  .84385261E-01
+  .11023295E+00  .12967379E+00  .11607054E+00  .63690111E-01  .10298366E+00
+  .13844144E+00  .10255815E+00 -.89844115E-01 -.14388637E+00 -.95886424E-01
+ -.10799654E+00 -.15372799E+00 -.16084816E+00 -.15396453E+00 -.14048399E+00
+ -.12364145E+00 -.97020224E-01 -.43861046E-01  .12147828E-02  .12837910E-01
+  .21175018E-01
+>TXVAR.EXP //  26
+  .18869352E-01  .18932538E-02  .38811436E-03  .12500671E-03  .54578781E-04
+  .28052611E-04  .18832092E-04  .11577934E-04  .82940378E-05  .77261266E-05
+  .11136265E-04  .13387498E-04  .17314178E-04  .21176113E-04  .22580476E-04
+  .31854303E-04  .26804979E-04  .46129229E-04  .13258764E-03  .26098755E-03
+  .40458067E-03  .10636778E-02  .19472857E-02  .76703588E-02  .17502885E-01
+  .72249010E-01
+>TYVAR.EXP //  26
+  .69144525E-01  .53102369E-02  .91275974E-03  .26094585E-03  .10503429E-03
+  .49768958E-04  .32193391E-04  .19211138E-04  .13430740E-04  .15725440E-04
+  .24343555E-04  .30363964E-04  .38614042E-04  .48760532E-04  .51240830E-04
+  .67613932E-04  .51551822E-04  .97240219E-04  .28010426E-03  .55914483E-03
+  .10415625E-02  .25008956E-02  .34427973E-02  .13588154E-01  .33749856E-01
+  .17069030E+00
+>END

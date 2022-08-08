@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EM_TF>
+  <Description>Magnetotelluric Transfer Functions</Description>
+  <ProductId>EMSOC.pkf015.2005-2006</ProductId>
+  <SubType>MT_TF</SubType>
+  <Notes/>
+  <Tags>
+	impedance,tipper
+</Tags>
+  <PrimaryData>
+    <Filename>pkf015.png</Filename>
+  </PrimaryData>
+  <Attachment>
+    <Filename>pkf015.edi</Filename>
+    <Description>The original used to produce the XML</Description>
+  </Attachment>
+  <Provenance>
+    <CreateTime>2018-04-23T18:10:41</CreateTime>
+    <CreatingApplication>EMTF File Conversion Utilities 4.0</CreatingApplication>
+    <Creator>
+      <Name>Stephen K. Park</Name>
+      <Email>magneto@ucrmt.ucr.edu</Email>
+      <Org>University of California Riverside</Org>
+      <OrgUrl>http://www.ucr.edu/</OrgUrl>
+    </Creator>
+    <Submitter>
+      <Name>Lana Erofeeva</Name>
+      <Email>serofeev@coas.oregonstate.edu</Email>
+      <Org>Oregon State University</Org>
+      <OrgUrl>http://oregonstate.edu</OrgUrl>
+    </Submitter>
+  </Provenance>
+  <Copyright>
+    <Citation>
+      <Title>Magnetotelluric transfer functions in the San Andreas Fault zone, CA, USA</Title>
+      <Authors>Becken, M., Ritter, O., Park, S. K., Bedrosian, P. A., Weckmann, U. and Weber, M.</Authors>
+      <Year>1999-2010</Year>
+      <SurveyDOI>doi:10.17611/DP/EMTF/EMSOC/SAF</SurveyDOI>
+    </Citation>
+    <SelectedPublications>Becken, M., Ritter, O., Park, S. K., Bedrosian, P. A., Weckmann, U., &amp; Weber, M. (2008). A deep crustal fluid channel into the San Andreas Fault system near Parkfield, California. Geophysical Journal International, 173(2), 718-732.</SelectedPublications>
+    <Acknowledgement>Instruments for the experiments were provided by the Geophysical Instrument Pool Potsdam (GIPP) and by the Electromagnetic Studies of the Continents (EMSOC) facility. This work was funded by the Deutsche Forschungsgemeinschaft and the National Science Foundation.</Acknowledgement>
+    <ReleaseStatus>Paper Citation Required</ReleaseStatus>
+    <ConditionsOfUse> All data and metadata for this survey are available free of charge and may be copied freely, duplicated and further distributed provided that this data set is cited as the reference, and that the author(s) contributions are acknowledged as detailed in the Acknowledgements. The author(s) of this survey additionally require that anyone using these data explicitly cites all publications referenced in the Selected Publications section of this data file.
+ While the author(s) strive to provide data and metadata of best possible quality, neither the author(s) of this data set, nor IRIS make any claims, promises, or guarantees about the accuracy, completeness, or adequacy of this information, and expressly disclaim liability for errors and omissions in the contents of this file. Guidelines about the quality or limitations of the data and metadata, as obtained from the author(s), are included for informational purposes only.</ConditionsOfUse>
+    <AdditionalInfo>Documentation for S. Park MT data from Parkfield (DPR,PKF) in 2005 and 2006
+Directories are PKF05 for Parkfield (deeproots) recorded in 2005.
+EDI files for MT24 consist of merged MT impedances and tensors from 3 recording bands.  Sites with both NIMS and MT24 data were
+merged to produce single broadband and long period site response.  All processing was done with Larsen&apos;s
+robust processing code (1996).
+DeepRoots data are not merged because these sites were not collocated.  NIMS edi files are named
+PKFnnn.edi and MT24 edi files are named DPRnnn.edi.
+Contact Steve Park at skpark@ucr.edu, magneto@ucrmt.ucr.edu, or 760-920-0046 if you have questions.
+6/14/2012
+Processing notes on UCR long period stations   1/24/06
+This was some of the most problematic data I have ever processed because of noise problems.  Examination of the signal power spectra shows that there at several lines with the most prominent one at 20 s periods.  This was noted by Larsen and by Egbert also, and attributed to BART noise.  Second, the signal levels drop abruptly at periods less than 10 s and remain absolutely flat (and low) throughout the dead band.  Almost anything I did with remote referencing produced good results for periods longer than 10 s.  However, use of the local reference site at 039 for periods less than 10 s produced absolute garbage.  What I found finally worked was to use SAO (San Andreas Observatory) magnetic data from Berkeley to remote reference.  This station is at Hollister, about 300 km away.  With this,
+I used Larsen&apos;s robust processing because it allows for sorting of data in both frequency domain (with coherency selection of segments) AND in the time domain.  The net result is that fewer segments are rejected because outliers in the time domain are identified and eliminated.  One consequence of this was that I could not process time series longer than about 3,000,000 points.  As the NIMS data sets were sampled at 4Hz, I cannot process all 3-4 weeks of data at 4 Hz at once.  After several false starts, the approach that yielded the best results was to decimate the 4Hz data to 1 Hz and then concatenate the time series for each station into one file.  The transfer functions here are computed using 1 Hz data.
+Larsen&apos;s code allows for multiple remote reference stations; it made no difference whether we used 1 or more references.  The key to small errors was to use a distant remote reference.
+I tried processing a high band and a low band in order to extend the range of periods over which we had transfer functions.  The high band was one of the 10 day 4 Hz time series and the low band was done with the 3-4 week 1Hz time series.  No combination of stations yielded good estimates in the high band;  at periods less than 10 s, the transfer functions were scattered and had large error bars.  Because the SAO data are available at 1Hz and 40Hz sample rates, I tried decimating the 40Hz data to 4Hz for a remote reference time signal at 4 Hz.  This also did not produce good results in the high band.  Ultimately, I used only the 1Hz data and processed it with two different decimations to get a high band that extended to periods less than 10 s and a low band to periods longer than 10,000 s.
+Transfer functions are provided in EDI files that have been read into both Geotools and WinGlink, so I know they are valid EDI files.  The postscript files are plots of the raw transfer functions from the high and low bands (hence, the apparent duplication of frequencies on the plots) computed in measurement coordinates (geomagnetic north for all sites but site 014).
+NOTE:  A frequency dependence of exp(-jwt) is assumed for the FFT used in the transfer function calculation. This corresponds to assuming that the signal has
+time dependence exp(+iwt) in the forward modeling code.
+SKP  1/24/06
+Based on the notes from Steve Park, upon output from Jimmy Larsen&apos;s robust processing codes, the data were negated and conjugated
+to conform to the exp(+iwt) modeling convention. However, the convention used for the tipper is not entirely clear. There is room for error there. Please exercise care.
+Anna Kelbert
+4/20/2018</AdditionalInfo>
+  </Copyright>
+  <Site>
+    <Project>EMSOC</Project>
+    <Survey>San Andreas Fault</Survey>
+    <YearCollected>2005-2006</YearCollected>
+    <Country>USA</Country>
+    <Id>pkf015</Id>
+    <Name>Parkfield, CA, USA</Name>
+    <Location datum="WGS84">
+      <Latitude>35.970667</Latitude>
+      <Longitude>-120.499389</Longitude>
+      <Elevation units="meters">0.000</Elevation>
+      <Declination epoch="1995.0">0.000</Declination>
+    </Location>
+    <Orientation angle_to_geographic_north="0.000">orthogonal</Orientation>
+    <AcquiredBy>Stephen K. Park</AcquiredBy>
+    <Start>2005-06-24T00:00:00</Start>
+    <End>2005-06-24T00:00:00</End>
+    <RunList></RunList>
+    <DataQualityNotes>
+      <Rating>5</Rating>
+      <GoodFromPeriod>0.000</GoodFromPeriod>
+      <GoodToPeriod>0.000</GoodToPeriod>
+      <Comments author="Stephen K. Park">Default data quality assigned to the survey at archiving</Comments>
+    </DataQualityNotes>
+  </Site>
+  <ProcessingInfo>
+    <SignConvention>exp(+ i\omega t)</SignConvention>
+    <RemoteRef type=""/>
+    <ProcessedBy>Stephen K. Park</ProcessedBy>
+    <ProcessDate>2006-01-23</ProcessDate>
+    <ProcessingSoftware>
+      <Name>NIMSEDI_V1</Name>
+      <LastMod>2006-01-21</LastMod>
+      <Author></Author>
+    </ProcessingSoftware>
+    <ProcessingTag></ProcessingTag>
+  </ProcessingInfo>
+  <StatisticalEstimates>
+    <Estimate name="VAR" type="real">
+      <Description>Variance</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/variance.html</ExternalUrl>
+      <Intention>error estimate</Intention>
+      <Tag>variance</Tag>
+    </Estimate>
+    <Estimate name="COV" type="complex">
+      <Description>Full covariance between each two TF components</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/covariance.html</ExternalUrl>
+      <Intention>error estimate</Intention>
+      <Tag>covariance</Tag>
+    </Estimate>
+    <Estimate name="INVSIGCOV" type="complex">
+      <Description>Inverse Coherent Signal Power Matrix (S)</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/inverse_signal_covariance.html</ExternalUrl>
+      <Intention>signal power estimate</Intention>
+      <Tag>inverse_signal_covariance</Tag>
+    </Estimate>
+    <Estimate name="RESIDCOV" type="complex">
+      <Description>Residual Covariance (N)</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/residual_covariance.html</ExternalUrl>
+      <Intention>error estimate</Intention>
+      <Tag>residual_covariance</Tag>
+    </Estimate>
+    <Estimate name="COH" type="complex">
+      <Description>Coherence</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/coherence.html</ExternalUrl>
+      <Intention>signal coherence</Intention>
+      <Tag>coherence</Tag>
+    </Estimate>
+    <Estimate name="PREDCOH" type="complex">
+      <Description>Multiple Coherence</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/multiple_coherence.html</ExternalUrl>
+      <Intention>signal coherence</Intention>
+      <Tag>multiple_coherence</Tag>
+    </Estimate>
+    <Estimate name="SIGAMP" type="complex">
+      <Description>Signal Amplitude</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/signal_amplitude.html</ExternalUrl>
+      <Intention>signal power estimate</Intention>
+      <Tag>signal_amplitude</Tag>
+    </Estimate>
+    <Estimate name="SIGNOISE" type="complex">
+      <Description>Signal Noise</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/signal_noise.html</ExternalUrl>
+      <Intention>error estimate</Intention>
+      <Tag>signal_noise</Tag>
+    </Estimate>
+  </StatisticalEstimates>
+  <DataTypes>
+    <DataType name="Z" type="complex" output="E" input="H" units="[mV/km]/[nT]">
+      <Description>MT impedance</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/impedance.html</ExternalUrl>
+      <Intention>primary data type</Intention>
+      <Tag>impedance</Tag>
+    </DataType>
+    <DataType name="T" type="complex" output="H" input="H" units="[]">
+      <Description>Vertical Field Transfer Functions (Tipper)</Description>
+      <ExternalUrl>http://www.iris.edu/dms/products/emtf/tipper.html</ExternalUrl>
+      <Intention>primary data type</Intention>
+      <Tag>tipper</Tag>
+    </DataType>
+  </DataTypes>
+  <GridOrigin name="pkf015">
+    <Location datum="WGS84">
+      <Latitude>35.970667</Latitude>
+      <Longitude>-120.499389</Longitude>
+      <Elevation units="meters">0.000</Elevation>
+    </Location>
+    <SiteCoords type="CART" units="M">
+      <X>0.000000</X>
+      <Y>0.000000</Y>
+      <Z>0.000</Z>
+    </SiteCoords>
+  </GridOrigin>
+  <SiteLayout>
+    <InputChannels ref="site" units="m">
+      <Magnetic name="HX" orientation="14.0" x="0.0" y="0.0" z="0.0"/>
+      <Magnetic name="HY" orientation="104.0" x="0.0" y="0.0" z="0.0"/>
+    </InputChannels>
+    <OutputChannels ref="site" units="m">
+      <Magnetic name="HZ" orientation="0.0" x="0.0" y="0.0" z="0.0"/>
+      <Electric name="EX" orientation="14.0" x="0.0" y="0.0" z="0.0" x2="60.0" y2="0.0" z2="0.0"/>
+      <Electric name="EY" orientation="104.0" x="0.0" y="0.0" z="0.0" x2="0.0" y2="60.0" z2="0.0"/>
+    </OutputChannels>
+  </SiteLayout>
+  <Data count="26">
+    <Period value="4.000000e0" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">6.459692e-1 -9.906346e-2</value>
+        <value name="ZXY" output="EX" input="HY">1.700054e0 1.526906e0</value>
+        <value name="ZYX" output="EY" input="HX">-1.253558e0 -1.326540e0</value>
+        <value name="ZYY" output="EY" input="HY">-7.911449e-1 1.033119e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">-3.102066e0</value>
+        <value name="ZXY" output="EX" input="HY">1.422725e1</value>
+        <value name="ZYX" output="EY" input="HX">5.809357e-1</value>
+        <value name="ZYY" output="EY" input="HY">6.335823e0</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.089126e-1 -7.267049e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.541292e-1 2.953884e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.381209e-1</value>
+        <value name="TY" output="HZ" input="HY">5.339790e0</value>
+      </T.VAR>
+    </Period>
+    <Period value="6.250000e0" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">4.418814e-1 7.895239e-2</value>
+        <value name="ZXY" output="EX" input="HY">1.624757e0 1.106729e0</value>
+        <value name="ZYX" output="EY" input="HX">-9.735021e-1 -9.276777e-1</value>
+        <value name="ZYY" output="EY" input="HY">-3.975117e-1 -3.125191e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">-2.634648e-2</value>
+        <value name="ZXY" output="EX" input="HY">1.523191e-1</value>
+        <value name="ZYX" output="EY" input="HX">3.226075e-2</value>
+        <value name="ZYY" output="EY" input="HY">1.236915e-1</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">9.529552e-2 -9.100475e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.242129e-1 1.756917e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">2.820815e-2</value>
+        <value name="TY" output="HZ" input="HY">8.917076e-2</value>
+      </T.VAR>
+    </Period>
+    <Period value="9.000900e0" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">3.033507e-1 1.654640e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.523910e0 8.539676e-1</value>
+        <value name="ZYX" output="EY" input="HX">-8.051942e-1 -7.066072e-1</value>
+        <value name="ZYY" output="EY" input="HY">-2.269556e-1 -4.951062e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">-7.105593e-4</value>
+        <value name="ZXY" output="EX" input="HY">7.072237e-3</value>
+        <value name="ZYX" output="EY" input="HX">3.114252e-3</value>
+        <value name="ZYY" output="EY" input="HY">9.220014e-3</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">6.652669e-2 -1.073278e-1</value>
+        <value name="TY" output="HZ" input="HY">-1.174400e-1 1.203058e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">2.596280e-3</value>
+        <value name="TY" output="HZ" input="HY">5.392984e-3</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.225040e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">2.071497e-1 2.040637e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.430705e0 6.975087e-1</value>
+        <value name="ZYX" output="EY" input="HX">-6.944373e-1 -5.709940e-1</value>
+        <value name="ZYY" output="EY" input="HY">-1.415720e-1 -5.844255e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">-5.382217e-6</value>
+        <value name="ZXY" output="EX" input="HY">8.464863e-4</value>
+        <value name="ZYX" output="EY" input="HX">5.537469e-4</value>
+        <value name="ZYY" output="EY" input="HY">1.467870e-3</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">3.577701e-2 -1.122712e-1</value>
+        <value name="TY" output="HZ" input="HY">-1.206944e-1 9.197318e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">4.422784e-4</value>
+        <value name="TY" output="HZ" input="HY">7.311922e-4</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.600000e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">1.385526e-1 2.173991e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.351760e0 5.988722e-1</value>
+        <value name="ZYX" output="EY" input="HX">-6.162895e-1 -4.816095e-1</value>
+        <value name="ZYY" output="EY" input="HY">-9.493546e-2 -6.274021e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.737651e-5</value>
+        <value name="ZXY" output="EX" input="HY">1.955150e-4</value>
+        <value name="ZYX" output="EY" input="HX">1.532616e-4</value>
+        <value name="ZYY" output="EY" input="HY">3.801836e-4</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">9.436309e-3 -1.078865e-1</value>
+        <value name="TY" output="HZ" input="HY">-1.284970e-1 7.711236e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">1.171902e-4</value>
+        <value name="TY" output="HZ" input="HY">1.700419e-4</value>
+      </T.VAR>
+    </Period>
+    <Period value="2.025111e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">1.150194e-1 2.156350e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.294810e0 5.349365e-1</value>
+        <value name="ZYX" output="EY" input="HX">-5.559594e-1 -4.295017e-1</value>
+        <value name="ZYY" output="EY" input="HY">-8.438063e-2 -6.747889e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.259035e-5</value>
+        <value name="ZXY" output="EX" input="HY">7.725217e-5</value>
+        <value name="ZYX" output="EY" input="HX">5.629457e-5</value>
+        <value name="ZYY" output="EY" input="HY">1.292078e-4</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-1.463491e-2 -9.433704e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.411432e-1 7.184346e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">4.144909e-5</value>
+        <value name="TY" output="HZ" input="HY">5.306932e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="2.500000e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">3.260619e-2 2.056899e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.248586e0 5.159281e-1</value>
+        <value name="ZYX" output="EY" input="HX">-5.157372e-1 -3.748087e-1</value>
+        <value name="ZYY" output="EY" input="HY">-4.713444e-2 -5.893978e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">6.767119e-6</value>
+        <value name="ZXY" output="EX" input="HY">5.282943e-5</value>
+        <value name="ZYX" output="EY" input="HX">2.942943e-5</value>
+        <value name="ZYY" output="EY" input="HY">6.915585e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-3.873795e-2 -5.984660e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.612083e-1 7.829903e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">1.834467e-5</value>
+        <value name="TY" output="HZ" input="HY">2.535765e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="3.599712e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-3.587137e-2 1.720435e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.168352e0 4.952248e-1</value>
+        <value name="ZYX" output="EY" input="HX">-4.526767e-1 -3.118048e-1</value>
+        <value name="ZYY" output="EY" input="HY">-2.563317e-2 -5.380513e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">3.030859e-6</value>
+        <value name="ZXY" output="EX" input="HY">2.820174e-5</value>
+        <value name="ZYX" output="EY" input="HX">1.229519e-5</value>
+        <value name="ZYY" output="EY" input="HY">2.957523e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-3.450708e-2 7.020538e-3</value>
+        <value name="TY" output="HZ" input="HY">-2.067225e-1 -2.696239e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.435597e-6</value>
+        <value name="TY" output="HZ" input="HY">9.892878e-6</value>
+      </T.VAR>
+    </Period>
+    <Period value="4.899559e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.597706e-2 1.434927e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.094279e0 4.884427e-1</value>
+        <value name="ZYX" output="EY" input="HX">-4.023243e-1 -2.740071e-1</value>
+        <value name="ZYY" output="EY" input="HY">-2.737610e-2 -5.350049e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">3.388514e-6</value>
+        <value name="ZXY" output="EX" input="HY">1.820418e-5</value>
+        <value name="ZYX" output="EY" input="HX">7.831321e-6</value>
+        <value name="ZYY" output="EY" input="HY">1.760883e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-2.319922e-2 -3.614833e-2</value>
+        <value name="TY" output="HZ" input="HY">-2.251829e-1 1.454177e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">4.427643e-6</value>
+        <value name="TY" output="HZ" input="HY">6.816307e-6</value>
+      </T.VAR>
+    </Period>
+    <Period value="6.397953e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-9.016661e-2 1.074511e-1</value>
+        <value name="ZXY" output="EX" input="HY">1.009329e0 4.915520e-1</value>
+        <value name="ZYX" output="EY" input="HX">-3.745838e-1 -2.388632e-1</value>
+        <value name="ZYY" output="EY" input="HY">-1.622557e-2 -5.272546e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">3.623753e-6</value>
+        <value name="ZXY" output="EX" input="HY">1.435824e-5</value>
+        <value name="ZYX" output="EY" input="HX">6.025296e-6</value>
+        <value name="ZYY" output="EY" input="HY">1.358443e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-4.435933e-2 -8.938225e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.286700e-1 1.850246e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">4.002320e-6</value>
+        <value name="TY" output="HZ" input="HY">6.202627e-6</value>
+      </T.VAR>
+    </Period>
+    <Period value="8.097166e1" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-1.049142e-1 7.376216e-2</value>
+        <value name="ZXY" output="EX" input="HY">9.323975e-1 5.010591e-1</value>
+        <value name="ZYX" output="EY" input="HX">-3.455832e-1 -2.124272e-1</value>
+        <value name="ZYY" output="EY" input="HY">-3.579084e-3 -5.134737e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">4.386777e-6</value>
+        <value name="ZXY" output="EX" input="HY">1.395399e-5</value>
+        <value name="ZYX" output="EY" input="HX">5.580795e-6</value>
+        <value name="ZYY" output="EY" input="HY">1.232732e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-1.087771e-1 -9.525208e-2</value>
+        <value name="TY" output="HZ" input="HY">1.489588e-1 1.610844e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">5.450719e-6</value>
+        <value name="TY" output="HZ" input="HY">8.910360e-6</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.000000e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-1.085779e-1 5.031827e-2</value>
+        <value name="ZXY" output="EX" input="HY">8.593694e-1 5.000212e-1</value>
+        <value name="ZYX" output="EY" input="HX">-3.238504e-1 -1.923728e-1</value>
+        <value name="ZYY" output="EY" input="HY">4.775120e-3 -5.088486e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">3.998458e-6</value>
+        <value name="ZXY" output="EX" input="HY">1.182168e-5</value>
+        <value name="ZYX" output="EY" input="HX">4.782097e-6</value>
+        <value name="ZYY" output="EY" input="HY">1.028855e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-1.231639e-1 -5.134801e-2</value>
+        <value name="TY" output="HZ" input="HY">2.314490e-1 -5.937454e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.481633e-6</value>
+        <value name="TY" output="HZ" input="HY">1.078044e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.440092e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-9.646251e-2 2.490670e-2</value>
+        <value name="ZXY" output="EX" input="HY">7.282954e-1 4.807185e-1</value>
+        <value name="ZYX" output="EY" input="HX">-2.900476e-1 -1.635892e-1</value>
+        <value name="ZYY" output="EY" input="HY">1.285931e-2 -5.365136e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">2.987085e-6</value>
+        <value name="ZXY" output="EX" input="HY">7.235863e-6</value>
+        <value name="ZYX" output="EY" input="HX">3.285633e-6</value>
+        <value name="ZYY" output="EY" input="HY">6.280636e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">-3.859757e-2 -1.847327e-2</value>
+        <value name="TY" output="HZ" input="HY">-4.172450e-2 -2.771093e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">7.104070e-6</value>
+        <value name="TY" output="HZ" input="HY">1.321291e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.960016e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-8.831842e-2 7.721352e-3</value>
+        <value name="ZXY" output="EX" input="HY">6.224089e-1 4.549529e-1</value>
+        <value name="ZYX" output="EY" input="HX">-2.655855e-1 -1.429738e-1</value>
+        <value name="ZYY" output="EY" input="HY">3.045717e-2 -4.401117e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.880503e-6</value>
+        <value name="ZXY" output="EX" input="HY">4.797748e-6</value>
+        <value name="ZYX" output="EY" input="HX">2.221322e-6</value>
+        <value name="ZYY" output="EY" input="HY">4.325713e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">2.712058e-2 -6.456999e-2</value>
+        <value name="TY" output="HZ" input="HY">-2.210830e-1 -1.644531e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">7.893486e-6</value>
+        <value name="TY" output="HZ" input="HY">1.534402e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="2.560164e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-7.589039e-2 2.926115e-3</value>
+        <value name="ZXY" output="EX" input="HY">5.419980e-1 4.224551e-1</value>
+        <value name="ZYX" output="EY" input="HX">-2.429424e-1 -1.299948e-1</value>
+        <value name="ZYY" output="EY" input="HY">3.244810e-2 -3.956392e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.062873e-6</value>
+        <value name="ZXY" output="EX" input="HY">3.605031e-6</value>
+        <value name="ZYX" output="EY" input="HX">1.502699e-6</value>
+        <value name="ZYY" output="EY" input="HY">2.948189e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">5.410858e-2 -9.196473e-2</value>
+        <value name="TY" output="HZ" input="HY">-2.371152e-1 -1.064073e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.889271e-6</value>
+        <value name="TY" output="HZ" input="HY">1.468754e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="3.240441e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-6.757308e-2 1.617128e-3</value>
+        <value name="ZXY" output="EX" input="HY">4.723087e-1 3.945894e-1</value>
+        <value name="ZYX" output="EY" input="HX">-2.314911e-1 -1.184565e-1</value>
+        <value name="ZYY" output="EY" input="HY">4.155906e-2 -3.264675e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">6.915112e-7</value>
+        <value name="ZXY" output="EX" input="HY">2.838592e-6</value>
+        <value name="ZYX" output="EY" input="HX">1.212855e-6</value>
+        <value name="ZYY" output="EY" input="HY">2.529813e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">5.992900e-2 -7.924302e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.697369e-1 -1.928584e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.835131e-6</value>
+        <value name="TY" output="HZ" input="HY">1.704566e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="4.000000e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-6.290253e-2 2.485024e-5</value>
+        <value name="ZXY" output="EX" input="HY">4.229616e-1 3.657625e-1</value>
+        <value name="ZYX" output="EY" input="HX">-2.145538e-1 -1.112911e-1</value>
+        <value name="ZYY" output="EY" input="HY">4.220989e-2 -2.478590e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">4.178627e-7</value>
+        <value name="ZXY" output="EX" input="HY">2.316644e-6</value>
+        <value name="ZYX" output="EY" input="HX">1.004934e-6</value>
+        <value name="ZYY" output="EY" input="HY">2.115847e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">7.191403e-2 -7.882009e-2</value>
+        <value name="TY" output="HZ" input="HY">-1.274511e-1 -2.137067e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.302467e-6</value>
+        <value name="TY" output="HZ" input="HY">1.576056e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="6.250000e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.626955e-2 3.889094e-3</value>
+        <value name="ZXY" output="EX" input="HY">3.275259e-1 3.071249e-1</value>
+        <value name="ZYX" output="EY" input="HX">-1.884924e-1 -9.639494e-2</value>
+        <value name="ZYY" output="EY" input="HY">4.308457e-2 -1.262430e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.325466e-7</value>
+        <value name="ZXY" output="EX" input="HY">2.030429e-6</value>
+        <value name="ZYX" output="EY" input="HX">8.938232e-7</value>
+        <value name="ZYY" output="EY" input="HY">2.061060e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">9.459694e-2 -7.448728e-2</value>
+        <value name="TY" output="HZ" input="HY">-2.895463e-2 -2.342048e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">6.844367e-6</value>
+        <value name="TY" output="HZ" input="HY">2.127849e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="9.000900e2" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.546734e-2 7.294717e-3</value>
+        <value name="ZXY" output="EX" input="HY">2.652005e-1 2.606431e-1</value>
+        <value name="ZYX" output="EY" input="HX">-1.684149e-1 -8.639964e-2</value>
+        <value name="ZYY" output="EY" input="HY">3.949154e-2 -7.213606e-3</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.303968e-8</value>
+        <value name="ZXY" output="EX" input="HY">2.595288e-6</value>
+        <value name="ZYX" output="EY" input="HX">9.998684e-7</value>
+        <value name="ZYY" output="EY" input="HY">2.501583e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.116003e-1 -6.838826e-2</value>
+        <value name="TY" output="HZ" input="HY">4.772191e-2 -2.262584e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">8.913772e-6</value>
+        <value name="TY" output="HZ" input="HY">3.421377e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.225040e3" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.648458e-2 1.107165e-2</value>
+        <value name="ZXY" output="EX" input="HY">2.206087e-1 2.256449e-1</value>
+        <value name="ZYX" output="EY" input="HX">-1.541579e-1 -7.899834e-2</value>
+        <value name="ZYY" output="EY" input="HY">3.701074e-2 -6.307757e-3</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">5.920105e-8</value>
+        <value name="ZXY" output="EX" input="HY">3.068762e-6</value>
+        <value name="ZYX" output="EY" input="HX">1.255128e-6</value>
+        <value name="ZYY" output="EY" input="HY">2.986667e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.268037e-1 -6.014535e-2</value>
+        <value name="TY" output="HZ" input="HY">1.043722e-1 -2.072683e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">1.235543e-5</value>
+        <value name="TY" output="HZ" input="HY">4.938755e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.600000e3" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.837872e-2 6.576579e-3</value>
+        <value name="ZXY" output="EX" input="HY">1.858531e-1 1.925073e-1</value>
+        <value name="ZYX" output="EY" input="HX">-1.464630e-1 -7.781772e-2</value>
+        <value name="ZYY" output="EY" input="HY">4.950614e-2 1.277405e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.870411e-7</value>
+        <value name="ZXY" output="EX" input="HY">3.882475e-6</value>
+        <value name="ZYX" output="EY" input="HX">1.164050e-6</value>
+        <value name="ZYY" output="EY" input="HY">3.082885e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.375150e-1 -5.277924e-2</value>
+        <value name="TY" output="HZ" input="HY">1.477667e-1 -1.831250e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">2.090152e-5</value>
+        <value name="TY" output="HZ" input="HY">7.242078e-5</value>
+      </T.VAR>
+    </Period>
+    <Period value="2.500000e3" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-6.026346e-2 -1.553357e-3</value>
+        <value name="ZXY" output="EX" input="HY">1.457315e-1 1.566846e-1</value>
+        <value name="ZYX" output="EY" input="HX">-1.259440e-1 -6.820842e-2</value>
+        <value name="ZYY" output="EY" input="HY">3.481584e-2 2.298624e-4</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">5.325103e-7</value>
+        <value name="ZXY" output="EX" input="HY">8.630915e-6</value>
+        <value name="ZYX" output="EY" input="HX">3.110054e-6</value>
+        <value name="ZYY" output="EY" input="HY">8.287531e-6</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.550856e-1 -2.727772e-2</value>
+        <value name="TY" output="HZ" input="HY">2.024073e-1 -1.340604e-1</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">7.048022e-5</value>
+        <value name="TY" output="HZ" input="HY">2.275322e-4</value>
+      </T.VAR>
+    </Period>
+    <Period value="5.000000e3" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-5.825932e-2 -1.291161e-2</value>
+        <value name="ZXY" output="EX" input="HY">1.067743e-1 1.115597e-1</value>
+        <value name="ZYX" output="EY" input="HX">-8.944236e-2 -5.769759e-2</value>
+        <value name="ZYY" output="EY" input="HY">-5.480597e-3 -1.418639e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">4.644971e-6</value>
+        <value name="ZXY" output="EX" input="HY">1.843233e-5</value>
+        <value name="ZYX" output="EY" input="HX">1.055343e-5</value>
+        <value name="ZYY" output="EY" input="HY">2.230149e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.529090e-1 1.470622e-2</value>
+        <value name="TY" output="HZ" input="HY">2.481943e-1 -5.084120e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">4.166966e-4</value>
+        <value name="TY" output="HZ" input="HY">9.654747e-4</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.000000e4" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-4.515174e-2 -2.248005e-2</value>
+        <value name="ZXY" output="EX" input="HY">6.771083e-2 6.486504e-2</value>
+        <value name="ZYX" output="EY" input="HX">-7.030214e-2 -6.237538e-2</value>
+        <value name="ZYY" output="EY" input="HY">1.393899e-2 3.016163e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">2.409963e-5</value>
+        <value name="ZXY" output="EX" input="HY">3.402962e-5</value>
+        <value name="ZYX" output="EY" input="HX">3.067815e-5</value>
+        <value name="ZYY" output="EY" input="HY">5.025544e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">1.165949e-1 3.442329e-2</value>
+        <value name="TY" output="HZ" input="HY">2.603802e-1 2.418428e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">3.160991e-3</value>
+        <value name="TY" output="HZ" input="HY">4.778139e-3</value>
+      </T.VAR>
+    </Period>
+    <Period value="1.333333e4" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-3.748865e-2 -2.939408e-2</value>
+        <value name="ZXY" output="EX" input="HY">5.443611e-2 6.385255e-2</value>
+        <value name="ZYX" output="EY" input="HX">-6.389430e-2 -4.905368e-2</value>
+        <value name="ZYY" output="EY" input="HY">2.490010e-2 -1.213783e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">4.491031e-5</value>
+        <value name="ZXY" output="EX" input="HY">4.354086e-5</value>
+        <value name="ZYX" output="EY" input="HX">4.625202e-5</value>
+        <value name="ZYY" output="EY" input="HY">6.767838e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">9.651124e-2 3.404220e-2</value>
+        <value name="TY" output="HZ" input="HY">2.601659e-1 5.023779e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">7.920821e-3</value>
+        <value name="TY" output="HZ" input="HY">9.904234e-3</value>
+      </T.VAR>
+    </Period>
+    <Period value="2.000000e4" units="secs">
+      <Z type="complex" size="2  2" units="[mV/km]/[nT]">
+        <value name="ZXX" output="EX" input="HX">-2.915124e-2 -3.176511e-2</value>
+        <value name="ZXY" output="EX" input="HY">5.425374e-2 4.367241e-2</value>
+        <value name="ZYX" output="EY" input="HX">-4.022583e-2 -5.155908e-2</value>
+        <value name="ZYY" output="EY" input="HY">-2.188193e-2 1.492970e-2</value>
+      </Z>
+      <Z.VAR type="real" size="2  2">
+        <value name="ZXX" output="EX" input="HX">1.039355e-4</value>
+        <value name="ZXY" output="EX" input="HY">6.319659e-5</value>
+        <value name="ZYX" output="EY" input="HX">8.067816e-5</value>
+        <value name="ZYY" output="EY" input="HY">9.930631e-5</value>
+      </Z.VAR>
+      <T type="complex" size="1  2" units="[]">
+        <value name="TX" output="HZ" input="HX">6.703634e-2 2.650188e-2</value>
+        <value name="TY" output="HZ" input="HY">2.582974e-1 8.166461e-2</value>
+      </T>
+      <T.VAR type="real" size="1  2">
+        <value name="TX" output="HZ" input="HX">3.116464e-2</value>
+        <value name="TY" output="HZ" input="HY">2.972529e-2</value>
+      </T.VAR>
+    </Period>
+  </Data>
+  <PeriodRange min="4.000000000" max="20000.000400000"/>
+</EM_TF>
