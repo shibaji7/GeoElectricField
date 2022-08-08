@@ -115,23 +115,25 @@ class Hopper(object):
         if not os.path.exists(fig_folder):
             os.makedirs(fig_folder)
 
+        L = len(self.elec_stations) + 1 if len(self.elec_stations) < 8 else 9
         plt.style.use(["science", "ieee"])
-        fig = plt.figure(dpi=240, figsize=(5, 3 * (1 + len(self.elec_stations))))
+        fig = plt.figure(dpi=240, figsize=(5, 3 * L))
         
         # Plot GOES dataset
-        ax = fig.add_subplot(100 * (1 + len(self.elec_stations)) + 11)
+        ax = fig.add_subplot(100 * L + 11)
         self.g.plot_TS_dataset(ax=ax)
         
         for i, sta in enumerate(self.elec_stations):
-            o = self.usgs[sta]
-            if len(o) > 0:
-                ax = fig.add_subplot(100 * (1 + len(self.elec_stations)) + 11 + i)
-                plot_TS_USGS_dataset(
-                    o,
-                    ax,
-                    self.dates,
-                    sta=sta,
-                )
+            if i < L-1:
+                o = self.usgs[sta]
+                if len(o) > 0:
+                    ax = fig.add_subplot(100 * L + 12 + i)
+                    plot_TS_USGS_dataset(
+                        o,
+                        ax,
+                        self.dates,
+                        sta=sta,
+                    )
             
         fig.savefig(fig_folder + "summary.png", bbox_inches="tight")
         return
