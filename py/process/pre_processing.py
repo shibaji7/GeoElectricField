@@ -15,6 +15,7 @@ import datetime as dt
 import os
 import sys
 
+import numpy as np
 import pandas as pd
 
 sys.path.extend(["py/", "py/fetch/", "py/process/"])
@@ -87,29 +88,43 @@ class Hopper(object):
         """
         from get_efields import (
             download_save_EarthScope_GeoEB,
+            load_MT_site,
             load_USArray_one_station_multi_cha,
         )
+        from utils import compute_Egeo_from_Bgeo, detrend_magnetic_field
 
         self.usgs = {}
+        self.usgs_sites = {}
 
         download_save_EarthScope_GeoEB(
             self.elec_stations, self.base + "geomag_electric/USArray/"
         )
         for sta in self.elec_stations:
-            self.usgs[sta] = load_USArray_one_station_multi_cha(
+            self.usgs_sites[sta] = load_MT_site(sta)
+            o = load_USArray_one_station_multi_cha(
                 sta,
                 self.dates[0],
                 self.dates[1],
                 data_dir=self.base + "geomag_electric/USArray/",
             )
+
+            if len(o) > 0:
+                magX, magY = (
+                    detrend_magnetic_field(np.array(o.BN)),
+                    detrend_magnetic_field(np.array(o.BE)),
+                )
+                o["EN_sim"], o["EE_sim"], _ = compute_Egeo_from_Bgeo(
+                    magX, magY, station=sta
+                )
+            self.usgs[sta] = o
         return
 
     def summary_plots(self):
         """
         Create summary plots for analysis
         """
-        from get_efields import plot_TS_USGS_dataset
         import matplotlib.pyplot as plt
+        from get_efields import plot_TS_USGS_dataset
 
         fig_folder = self.base + "figures/"
         if not os.path.exists(fig_folder):
@@ -118,13 +133,13 @@ class Hopper(object):
         L = len(self.elec_stations) + 1 if len(self.elec_stations) < 8 else 9
         plt.style.use(["science", "ieee"])
         fig = plt.figure(dpi=240, figsize=(5, 3 * L))
-        
+
         # Plot GOES dataset
         ax = fig.add_subplot(100 * L + 11)
         self.g.plot_TS_dataset(ax=ax)
-        
+
         for i, sta in enumerate(self.elec_stations):
-            if i < L-1:
+            if i < L - 1:
                 o = self.usgs[sta]
                 if len(o) > 0:
                     ax = fig.add_subplot(100 * L + 12 + i)
@@ -134,7 +149,7 @@ class Hopper(object):
                         self.dates,
                         sta=sta,
                     )
-            
+
         fig.savefig(fig_folder + "summary.png", bbox_inches="tight")
         return
 

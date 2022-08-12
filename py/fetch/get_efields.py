@@ -96,7 +96,7 @@ def plot_TS_USGS_dataset(
     ax,
     xlim,
     sta="",
-    ylim=[-100, 100],
+    ylim=[-150, 150],
     comps={
         "ele": {"ls": "-", "lw": 0.5},
         "mag": {"ls": "--", "lw": 0.5},
@@ -110,22 +110,39 @@ def plot_TS_USGS_dataset(
     Overlay station data into axes
     """
     import matplotlib.dates as mdates
+
     ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
     ax.plot(
-        o.time, 
-        o.EE, 
+        o.time,
+        o.EE,
         ls=comps["ele"]["ls"],
         color="r",
         lw=comps["ele"]["lw"],
-        label=r"East",
+        label=r"$E_E^{obs}$",
     )
     ax.plot(
-        o.time, 
-        o.EN, 
+        o.time,
+        o.EE_sim,
+        ls="--",
+        color="k",
+        lw=comps["ele"]["lw"],
+        label=r"$E_E^{sim}$",
+    )
+    ax.plot(
+        o.time,
+        o.EN,
         ls=comps["ele"]["ls"],
         color="b",
         lw=comps["ele"]["lw"],
-        label=r"North",
+        label=r"$E_N^{obs}$",
+    )
+    ax.plot(
+        o.time,
+        o.EN_sim,
+        ls="--",
+        color="green",
+        lw=comps["ele"]["lw"],
+        label=r"$E_N^{sim}$",
     )
     ax.set_xlim(xlim)
     ax.set_xlabel(xlabel)
@@ -133,24 +150,12 @@ def plot_TS_USGS_dataset(
     ax.set_ylim(ylim)
     ax.legend(loc=loc, fontsize=6)
     ax.text(0.9, 0.95, sta.upper(), ha="right", va="center", transform=ax.transAxes)
-    
+
     if plot_mag:
         ax = ax.twinx()
         ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
-        ax.plot(
-            o.time, 
-            o.BE, 
-            ls=comps["mag"]["ls"],
-            color="r",
-            lw=comps["mag"]["lw"]
-        )
-        ax.plot(
-            o.time, 
-            o.BN, 
-            ls=comps["mag"]["ls"],
-            color="b",
-            lw=comps["mag"]["lw"]
-        )
+        ax.plot(o.time, o.BE, ls=comps["mag"]["ls"], color="r", lw=comps["mag"]["lw"])
+        ax.plot(o.time, o.BN, ls=comps["mag"]["ls"], color="b", lw=comps["mag"]["lw"])
         ax.set_ylabel(ylabels[1])
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)

@@ -147,6 +147,22 @@ class GOES(object):
         self.high_res_data = self.fetch_highres_datasets()
         return
 
+    def __key_map__(self, res="low"):
+        """
+        Get keys for netcdf files
+        """
+        _map_ = {
+            "low": {
+                "15": ["A_AVG", "B_AVG"],
+                "12": ["xs", "xl"],
+            },
+            "high": {
+                "15": ["A_FLUX", "B_FLUX"],
+                "12": ["xs", "xl"],
+            },
+        }
+        return _map_[res][str(self.station)]
+
     def fetch_1m_datasets(self):
         """
         Fetch 1m averaged GOES-Flare data
@@ -173,7 +189,8 @@ class GOES(object):
             fname = self.base + fname
             os.system(f"wget -O {fname} {url}")
             ds = nc.Dataset(fname)
-            o["hxr"], o["sxr"] = ds.variables["A_AVG"][:], ds.variables["B_AVG"][:]
+            keys = self.__key_map__()
+            o["hxr"], o["sxr"] = ds.variables[keys[0]][:], ds.variables[keys[1]][:]
             tunit, tcal = (
                 ds.variables["time_tag"].units,
                 ds.variables["time_tag"].calendar,
@@ -214,7 +231,8 @@ class GOES(object):
             fname = self.base + fname
             os.system(f"wget -O {fname} {url}")
             ds = nc.Dataset(fname)
-            o["hxr"], o["sxr"] = ds.variables["A_FLUX"][:], ds.variables["B_FLUX"][:]
+            keys = self.__key_map__()
+            o["hxr"], o["sxr"] = ds.variables[keys[0]][:], ds.variables[keys[1]][:]
             tunit, tcal = (
                 ds.variables["time_tag"].units,
                 ds.variables["time_tag"].calendar,
@@ -235,8 +253,8 @@ class GOES(object):
         ax=None,
         ylim=[1e-8, 1e-3],
         comps={
-            "hxr": {"color": "b", "ls": "-", "lw": 0.5},
-            "sxr": {"color": "r", "ls": "-", "lw": 0.5},
+            "hxr": {"color": "b", "ls": "None", "lw": 0.5},
+            "sxr": {"color": "r", "ls": "None", "lw": 0.5},
         },
         high_res=False,
         xlabel="UT",
@@ -265,9 +283,12 @@ class GOES(object):
             ax.semilogy(
                 data.tval,
                 data[comp],
+                marker=".",
                 ls=co["ls"],
                 color=co["color"],
                 lw=co["lw"],
+                ms=0.2,
+                alpha=0.9,
                 label=comp.upper(),
             )
         ax.set_ylim(1e-8, 1e-2)
