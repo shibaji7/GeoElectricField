@@ -132,7 +132,12 @@ class Simulate(object):
         for sta in self.sm_stations:
             o = self.sm_site.sm_data[self.sm_site.sm_data.iaga == sta].copy()
             if len(o) > 0:
-                o = o.set_index("tval").resample("1s").interpolate(method="cubic").reset_index()
+                o = (
+                    o.set_index("tval")
+                    .resample("1s")
+                    .interpolate(method="cubic")
+                    .reset_index()
+                )
                 print(o.head())
                 magX, magY = (
                     detrend_magnetic_field(np.array(o.N_geo), L=120, p=0.5, dT=1),
