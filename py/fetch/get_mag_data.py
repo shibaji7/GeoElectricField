@@ -21,6 +21,25 @@ from supermag import *
 from tqdm import tqdm
 
 
+def calculate_GC_distance(lat1, lon1, lat2, lon2, method="GC", R=6371.0):
+    """
+    Compute distance between two points over a circle
+    """
+    from math import acos, asin, cos, radians, sin, sqrt
+
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    if method == "GC":
+        gc = R * (
+            acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2))
+        )
+    if method == "haversine":
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        gc = 2 * R * asin(sqrt(a))
+    return gc
+
+
 class SuperMAG(object):
     """
     This class is dedicated to load magnetic dataset from

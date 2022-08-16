@@ -20,7 +20,23 @@ import pandas as pd
 sys.path.extend(["py/", "py/fetch/", "py/process/"])
 
 
-def detrend_magnetic_field(B, L=120, p=None):
+def get_tapering_function(B, p, dT=1):
+    """
+    This method is resposible for generateing
+    tapering function based on time sequence t
+    and tapering coefficient p
+    """
+    t = np.arange(len(B)) * dT
+    T = len(B)
+    P, P2 = int(T * p), int(T * p / 2)
+    w = np.zeros_like(B)
+    w[:P2] = 0.5 * (1 - np.cos(2 * np.pi * t[:P2] / P))
+    w[P2 : T - P2] = 1.0
+    w[T - P2 :] = 0.5 * (1 - np.cos(2 * np.pi * (t[-1] - t[T - P2 :]) / P))
+    return w
+
+
+def detrend_magnetic_field(B, L=120, p=None, dT=1):
     """
     This method is resposible for detrend
     magnetic field data and taper it to reduce
@@ -30,7 +46,7 @@ def detrend_magnetic_field(B, L=120, p=None):
     fmed = np.median(B[:L])
     Bd = B - fmed
     if p:
-        Bd *= get_tapering_function(p)
+        Bd *= get_tapering_function(B, p, dT)
     return Bd
 
 
@@ -80,7 +96,7 @@ def get_nearest_station(glat, glon):
     return station, site
 
 
-def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None):
+def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None, dT=1):
     """
     Compute Egeo from Bgeo
     given station name or nearest
@@ -92,5 +108,8 @@ def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None):
         site = load_MT_site(station)
     elif (glat is not None) and (glon is not None):
         station, site = get_nearest_station(glat, glon)
-    Ex, Ey = site.convolve_fft(magX, magY, dt=1)
+    if site:
+        Ex, Ey = site.convolve_fft(magX, magY, dt=dT)
+    else:
+        Ex, Ey = [], []
     return Ex, Ey, site
