@@ -132,9 +132,11 @@ class Simulate(object):
         for sta in self.sm_stations:
             o = self.sm_site.sm_data[self.sm_site.sm_data.iaga == sta].copy()
             if len(o) > 0:
+                o = o.set_index("tval").resample("1s").interpolate(method="cubic").reset_index()
+                print(o.head())
                 magX, magY = (
-                    detrend_magnetic_field(np.array(o.N_geo), L=3, p=0.1, dT=60),
-                    detrend_magnetic_field(np.array(o.E_geo), L=3, p=0.1, dT=60),
+                    detrend_magnetic_field(np.array(o.N_geo), L=120, p=0.5, dT=1),
+                    detrend_magnetic_field(np.array(o.E_geo), L=120, p=0.5, dT=1),
                 )
                 glat, glon = o.glat.tolist()[0], o.glon.tolist()[0]
                 glon = np.mod((glon + 180), 360) - 180
@@ -143,7 +145,7 @@ class Simulate(object):
                     magY,
                     glat=glat,
                     glon=glon,
-                    dT=60,
+                    dT=1,
                 )
                 self.sm_efield_site[sta] = {
                     "obs": o,
