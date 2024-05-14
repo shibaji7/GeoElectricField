@@ -19,6 +19,8 @@ import pandas as pd
 from loguru import logger
 from supermag import *
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def calculate_GC_distance(lat1, lon1, lat2, lon2, method="GC", R=6371.0):
@@ -55,7 +57,7 @@ class SuperMAG(object):
         base,
         dates,
         uid="shibaji7",
-        stations=None,
+        stations=[],
         flags="mlt,mag,geo,decl,sza",
     ):
         """
@@ -72,7 +74,7 @@ class SuperMAG(object):
         self.dates = dates
         self.logon = uid
         self.flags = flags
-        self.stations = self.load_stations() if stations is None else stations
+        self.stations = self.load_stations() if len(stations)==0 else stations
         self.fetch_baseline_substracted_datasets()
         return
 
@@ -82,7 +84,7 @@ class SuperMAG(object):
         """
         extent = int((self.dates[1] - self.dates[0]).total_seconds())
         (status, stations) = SuperMAGGetInventory(self.logon, self.dates[0], extent)
-        logger.info(f"SM inventory fetch stats: {status}")
+        logger.info(f"SM inventory fetch stats: {status}, {len(stations)}")
         return stations
 
     def fetch_baseline_substracted_datasets(self):
@@ -107,33 +109,45 @@ class SuperMAG(object):
                     data.tval = data.tval.apply(
                         lambda x: dt.datetime.utcfromtimestamp(x)
                     )
+                    data["B"] = np.sqrt(
+                        data["N_geo"]**2 + data["E_geo"]**2 + data["Z_geo"]**2
+                    )
+                    delt = (data.tval.iloc[1] - data.tval.iloc[0]).total_seconds()
+                    data["dBdt"] = np.diff(data.B, prepend=data.B.iloc[0]) / delt
                     self.sm_data = pd.concat([self.sm_data, data])
                 logger.info(f"SM inventory fetch data stats[{stn}]: {status}, idx:{i}")
             self.sm_data.to_csv(fname, header=True, index=False, float_format="%g")
         else:
             logger.info(f"SM inventory is local: {0}")
             self.sm_data = pd.read_csv(fname, parse_dates=["tval"])
+            self.sm_data["glon"] = np.round(np.mod(self.sm_data["glon"]+180,360)-180, 2)
         return
 
     def plot_TS_dataset(
         self,
         stn,
-        ax,
-        ylim=[-50, 50],
+        ax=None,
+        ylim=[-100, 100],
         coords="geo",
         comps={
             "N": {"color": "r", "ls": "-", "lw": 0.5},
-            "E": {"color": "r", "ls": "-", "lw": 0.5},
-            "Z": {"color": "r", "ls": "-", "lw": 0.5},
+            "E": {"color": "g", "ls": "-", "lw": 0.5},
+            "Z": {"color": "b", "ls": "-", "lw": 0.5},
         },
         xlabel="UT",
         ylabel=r"$\delta$, nT",
         loc=2,
+        figname=None,
     ):
         """
         Overlay station data into axes
         """
-        data = self.sm_data[stn]
+        if ax == None:
+            fig = plt.figure(dpi=240, figsize=(5, 3))
+            ax = fig.add_subplot(111)
+        data = self.sm_data[
+            self.sm_data.iaga == stn
+        ]
         if ylim:
             ax.set_ylim(ylim)
         ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
@@ -151,6 +165,12 @@ class SuperMAG(object):
                 label=comp,
             )
         ax.legend(loc=loc, fontsize=6)
+        txt = f"{stn}" + "\n" + rf"$\theta,\phi$={data.glat.tolist()[0]}, {data.glon.tolist()[0]}" + \
+           "\n"+ fr"$\chi$={'%.2f'%np.mean(data.sza)}"
+        ax.text(0.9, 0.9, txt, ha="center", va="center", transform=ax.transAxes)
+
+        if figname:
+            fig.savefig(figname, bbox_inches="tight")
         return ax
 
     @staticmethod

@@ -72,6 +72,7 @@ def load_USArray_one_station_multi_cha(
                 'BN' is northward geoB; 'BE' is eastward geoB;
                 'EN' is northward geoE; 'EE' is eastward geoE.
     """
+    from scipy.signal import detrend
     o = pd.DataFrame()
     if os.path.exists(f"{data_dir}{station}.hdf"):
         logger.info(f"Load file {station}.hdf")
@@ -86,6 +87,9 @@ def load_USArray_one_station_multi_cha(
         o = o[channels]
         o = o[(o.time >= start_time) & (o.time <= end_time)]
         o = o.reset_index(drop=True)
+        for c in channels:
+            if c != "time":
+                o[c] = detrend(o[c], type="constant")
     else:
         logger.info(f"File does exists {station}.hdf")
     return o.copy()
@@ -93,24 +97,29 @@ def load_USArray_one_station_multi_cha(
 
 def plot_TS_USGS_dataset(
     o,
-    ax,
-    xlim,
+    ax=None,
+    xlim=None,
     sta="",
     ylim=[-150, 150],
     comps={
         "ele": {"ls": "-", "lw": 0.5},
-        "mag": {"ls": "--", "lw": 0.5},
+        "mag": {"ls": ":", "lw": 0.5},
     },
     xlabel="UT",
     ylabels=[r"$E_{GEO}$, $mv/km$", r"$B_{GEO}$, $nT$"],
     loc=2,
-    plot_mag=False,
+    plot_mag=True,
+    figname=None
 ):
     """
     Overlay station data into axes
     """
+    import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
 
+    if ax == None:
+        fig = plt.figure(dpi=240, figsize=(5, 3))
+        ax = fig.add_subplot(111)
     ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
     ax.plot(
         o.time,
@@ -120,14 +129,14 @@ def plot_TS_USGS_dataset(
         lw=comps["ele"]["lw"],
         label=r"$E_E^{obs}$",
     )
-    ax.plot(
-        o.time,
-        o.EE_sim,
-        ls="--",
-        color="k",
-        lw=comps["ele"]["lw"],
-        label=r"$E_E^{sim}$",
-    )
+    # ax.plot(
+    #     o.time,
+    #     o.EE_sim,
+    #     ls="--",
+    #     color="k",
+    #     lw=comps["ele"]["lw"],
+    #     label=r"$E_E^{sim}$",
+    # )
     ax.plot(
         o.time,
         o.EN,
@@ -136,14 +145,14 @@ def plot_TS_USGS_dataset(
         lw=comps["ele"]["lw"],
         label=r"$E_N^{obs}$",
     )
-    ax.plot(
-        o.time,
-        o.EN_sim,
-        ls="--",
-        color="green",
-        lw=comps["ele"]["lw"],
-        label=r"$E_N^{sim}$",
-    )
+    # ax.plot(
+    #     o.time,
+    #     o.EN_sim,
+    #     ls="--",
+    #     color="green",
+    #     lw=comps["ele"]["lw"],
+    #     label=r"$E_N^{sim}$",
+    # )
     ax.set_xlim(xlim)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabels[0])
@@ -159,4 +168,7 @@ def plot_TS_USGS_dataset(
         ax.set_ylabel(ylabels[1])
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
+    
+    if figname:
+        fig.savefig(figname, bbox_inches="tight")
     return

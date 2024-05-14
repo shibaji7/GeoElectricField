@@ -18,7 +18,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.extend(["py/", "py/fetch/", "py/process/"])
+sys.path.extend(["py/", "py/fetch/", "py/process/", "py/plots/"])
 
 
 class Hopper(object):
@@ -36,49 +36,52 @@ class Hopper(object):
 
     def __init__(
         self,
+        event,
         base,
         dates,
-        rads,
+        supermag=[],
+        intermagnet=[],
         elec_stations=[],
-        sat_resolution=2,
-        sat_station=15,
-        fism_spectrum=[0.01, 40, 1.0],
         uid="shibaji7",
     ):
         """
-        Populate all data tables from GOES, FISM2, SuperDARN, and SuperMAG.
+        Populate all data tables from GOES, FISM2, SuperMAG and Efield.
         """
-        from get_fit_data import FetchData
-        from get_flare_data import GOES
+        from get_mag_data import SuperMAG
+        from get_flare_data import FISM
+        from goes import FlareTS
 
+        self.event = event
         self.base = base
         self.dates = dates
-        self.rads = rads
-        self.sat_resolution = sat_resolution
-        self.sat_station = sat_station
-        self.fism_spectrum = fism_spectrum
         self.uid = uid
         self.elec_stations = elec_stations
+        self.supermag = supermag
+        self.intermagnet = intermagnet
 
         if not os.path.exists(base):
             os.makedirs(base)
-        self.sds = []
         du = dates[0]
         du = du.replace(hour=0, minute=0)
-        for r in rads:
-            sd = FetchData.FetchSD(
-                base,
-                r,
-                [du, du + dt.timedelta(1)],
-            )
-            self.sds.append(sd)
-        self.g = GOES.FetchGOES(
-            base,
-            dates,
-            sat_station,
-            sat_resolution,
+
+        if len(self.elec_stations):
+            self.fetch_USGS_database()
+        
+        self.smag = SuperMAG(
+            self.base,
+            self.dates,
+            uid=self.uid,
+            stations=self.supermag
         )
-        self.fetch_USGS_database()
+        #################################################
+        # TODO: Did not implemented the intermagnet
+        #################################################
+
+        # self.fism = FISM.FetchFISM(
+        #     self.base,
+        #     self.dates
+        # )
+        self.g = FlareTS(dates)
         self.summary_plots()
         return
 
@@ -123,38 +126,68 @@ class Hopper(object):
         """
         Create summary plots for analysis
         """
-        import matplotlib.pyplot as plt
+        import os
+        os.makedirs(f"{self.base}/figures/mag/", exist_ok=True)
+        os.makedirs(f"{self.base}/figures/elec/", exist_ok=True)
+        os.makedirs(f"{self.base}/figures/map/", exist_ok=True)
+        self.g.plot_TS()
+        self.g.save("goes.png", f"{self.base}/figures/")
+        self.g.close()
+        # self.fism.plot_TS()
+        # self.fism.save("fism.png", f"{self.base}/figures/")
+        # self.fism.close()
+
         from get_efields import plot_TS_USGS_dataset
-
-        fig_folder = self.base + "figures/"
-        if not os.path.exists(fig_folder):
-            os.makedirs(fig_folder)
-
-        L = len(self.elec_stations) + 1 if len(self.elec_stations) < 8 else 9
-        plt.style.use(["science", "ieee"])
-        fig = plt.figure(dpi=240, figsize=(5, 3 * L))
-
-        # Plot GOES dataset
-        ax = fig.add_subplot(100 * L + 11)
-        self.g.plot_TS_dataset(ax=ax)
-
         for i, sta in enumerate(self.elec_stations):
-            if i < L - 1:
-                o = self.usgs[sta]
-                if len(o) > 0:
-                    ax = fig.add_subplot(100 * L + 12 + i)
-                    plot_TS_USGS_dataset(
-                        o,
-                        ax,
-                        self.dates,
-                        sta=sta,
-                    )
+            o = self.usgs[sta]
+            if len(o) > 0:
+                plot_TS_USGS_dataset(
+                    o,
+                    None,
+                    self.dates,
+                    sta=sta,
+                    figname=f"{self.base}/figures/elec/{sta}.png"
+                )
+        
+        for stn in self.smag.stations:
+            o = self.smag.sm_data[
+                (self.smag.sm_data.tval == self.event)
+                & (self.smag.sm_data.iaga == stn)
+                & (self.smag.sm_data.sza <= 90)
+            ]
+            if len(o) > 0:
+                self.smag.plot_TS_dataset(
+                    stn,
+                    figname=f"{self.base}/figures/mag/{stn}.png"
+                )
 
-        fig.savefig(fig_folder + "summary.png", bbox_inches="tight")
+        from maps import Map
+        dates = [
+            self.dates[0] + dt.timedelta(minutes=i) 
+            for i in range(int((self.dates[1]-self.dates[0]).total_seconds()/60))
+        ]
+        for d in dates:
+            map = Map(d)
+            for i, sta in enumerate(self.smag.stations):
+                o = self.smag.sm_data[
+                    (self.smag.sm_data.tval == d)
+                    & (self.smag.sm_data.iaga == sta)
+                ]
+                if len(o) > 0:
+                    inst = dict(
+                        lon=np.mod(o.glon.tolist()[0]+180,360)-180,
+                        lat=o.glat.tolist()[0],
+                        code=o.iaga.tolist()[0],
+                        E_geo=o.E_geo.tolist()[0],
+                        N_geo=o.N_geo.tolist()[0],
+                        Z_geo=o.Z_geo.tolist()[0],
+                    )
+                    map.plot_instrument(inst)
+            map.save(f"{self.base}/figures/map/map_{d.strftime('%H%M')}.png")
         return
 
 
-def fork_event_based_mpi(file="config/events.csv"):
+def fork_event_based_mpi(file="config/eventlist.csv", ix=0):
     """
     Load all the events from
     events list files and fork Hopper
@@ -171,10 +204,12 @@ def fork_event_based_mpi(file="config/events.csv"):
             H="%02d" % ev.hour,
             M="%02d" % ev.minute,
         )
-        dates = [row["s_time"], row["e_time"]]
-        rads = row["rads"].split("-")
-        elec_stations = row["efield_stn"].split("-")
-        Hopper(base, dates, rads, elec_stations)
+        if not os.path.exists(base):
+            dates = [row["s_time"], row["e_time"]]
+            elec_stations = [] if "N" == row["efield_stn"] else row["efield_stn"].split("-")
+            supermag = [] if "N" == row["supermag"] else row["supermag"].split("-")
+            intermagnet = [] if "N" == row["intermagnet"] else row["intermagnet"].split("-")
+            Hopper(ev, base, dates, supermag, intermagnet, elec_stations)
     return
 
 

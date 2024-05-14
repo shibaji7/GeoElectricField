@@ -22,7 +22,27 @@ import netCDF4 as nc
 import numpy as np
 import pandas as pd
 import requests
+import swifter
 from loguru import logger
+
+def setup(science=True):
+    if science:
+        import mplstyle
+        plt.rcParams.update(
+            {
+                "figure.figsize": np.array([8, 6]),
+                "text.usetex": True,
+                "font.family": "sans-serif",
+                "font.sans-serif": [
+                    "Tahoma",
+                    "DejaVu Sans",
+                    "Lucida Grande",
+                    "Verdana",
+                ],
+                "font.size": 12,
+            }
+        )
+    return
 
 
 class FISM(object):
@@ -38,7 +58,7 @@ class FISM(object):
         self,
         base,
         dates,
-        spectrum=[0.01, 40, 1.0],
+        spectrum=[0.05, 5, 1.0],
     ):
         """
         Parameters:
@@ -50,8 +70,9 @@ class FISM(object):
         self.base = base
         os.makedirs(base, exist_ok=True)
         self.dates = dates
+        self.wavelengths = np.arange(spectrum[0], spectrum[1], spectrum[2])
         self.spectrum = spectrum
-        self.fetch_1m_datasets()
+        self.df = self.fetch_1m_datasets()
         return
 
     def fetch_1m_datasets(self):
@@ -81,14 +102,14 @@ class FISM(object):
                     d = pd.read_csv(tmpfname)
                     d = d.rename(
                         columns={
-                            "time (seconds since 1970-01-01)": "time",
+                            "time (Julian Date)": "time",
                             "wavelength (nm)": "wavelength",
                             "irradiance (W/m^2/nm)": "irradiance",
                             "uncertainty (unitless)": "uncertainty",
                         }
                     )
                     d.time = d.time.swifter.apply(
-                        lambda x: dt.datetime(1070, 1, 1) + dt.timedelta(seconds=x)
+                        lambda x: pd.to_datetime(x, origin='julian', unit='D')
                     )
                     o = pd.concat([o, d])
             os.remove(tmpfname)
@@ -103,7 +124,7 @@ class FISM(object):
     def FetchFISM(
         base,
         dates,
-        spectrum=[0.01, 40, 1.0],
+        spectrum=[0.05, 5, 1.0],
     ):
         """
         Static method to call the FISM
@@ -112,6 +133,73 @@ class FISM(object):
         """
         f = FISM(base, dates, spectrum)
         return f
+
+    def plot_TS(self, dates=None):
+        """
+        Plot time series data in-memory
+        """
+        dates = dates if dates else self.dates
+        setup()
+        self.fig = plt.figure(figsize=(6, 2.5), dpi=150)
+        ax = self.fig.add_subplot(111)
+        self.plot_TS_from_axes(ax, dates)
+        return
+
+    def plot_TS_from_axes(self, ax, dates=None, xlabel="Time (UT)"):
+        """
+        Plot time series data in-memory
+        """
+        dates = dates if dates else self.dates
+        ax.set_xlabel(xlabel, fontdict={"size": 15, "fontweight": "bold"})
+        ax.set_ylabel(
+            r"Irradiance ($W/m^2$)", fontdict={"size": 15, "fontweight": "bold"}
+        )
+        ax.text(
+            1.05,
+            0.99,
+            "FISM2",
+            ha="center",
+            va="top",
+            fontdict={"size": 12, "fontweight": "bold"},
+            transform=ax.transAxes,
+            rotation=90,
+        )
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
+        hours = mdates.HourLocator(byhour=range(0, 24, 1))
+        ax.xaxis.set_major_locator(hours)
+        dtime = (dates[1] - dates[0]).total_seconds() / 3600.0
+        if dtime < 4.0:
+            minutes = mdates.MinuteLocator(byminute=range(0, 60, 10))
+            ax.xaxis.set_minor_locator(minutes)
+            ax.xaxis.set_minor_formatter(mdates.DateFormatter(r"%H^{%M}"))
+        for wv in self.wavelengths:
+            o = self.df[self.df.wavelength==wv]
+            if len(o) > 0:
+                ax.semilogy(
+                    o.time,
+                    o.irradiance,
+                    marker="o",
+                    ls="None",
+                    ms=0.4,
+                    alpha=0.9,
+                    label=rf"$\lambda_0\sim ({wv})$ nm",
+                )
+        ax.legend(loc=1, fontsize=7)
+        ax.set_xlim(dates)
+        ax.set_ylim(1e-8, 1e-2)
+        if xlabel == "":
+            ax.set_xticklabels([])
+        return
+
+    def save(self, figname=None, folder="tmp/figures/goes/"):
+        os.makedirs(folder, exist_ok=True)
+        figname = folder + figname if figname else folder + f"{self.dates[0].strftime('%Y%m%d')}.png"
+        self.fig.savefig(figname, bbox_inches="tight")
+        return
+
+    def close(self):
+        plt.close()
+        return
 
 
 class GOES(object):
@@ -253,8 +341,8 @@ class GOES(object):
         ax=None,
         ylim=[1e-8, 1e-3],
         comps={
-            "hxr": {"color": "b", "ls": "None", "lw": 0.5},
-            "sxr": {"color": "r", "ls": "None", "lw": 0.5},
+            "hxr": {"color": "b", "ls": "--", "lw": 0.5},
+            "sxr": {"color": "r", "ls": "--", "lw": 0.5},
         },
         high_res=False,
         xlabel="UT",
@@ -265,7 +353,8 @@ class GOES(object):
         """
         Overlay station data into axes
         """
-        plt.style.use(["science", "ieee"])
+        #plt.style.use(["science", "ieee"])
+        import mplstyle
         if ax is None:
             fig = plt.figure(dpi=180, figsize=(5, 3))
             ax = fig.add_subplot(111)
@@ -283,11 +372,9 @@ class GOES(object):
             ax.semilogy(
                 data.tval,
                 data[comp],
-                marker=".",
                 ls=co["ls"],
                 color=co["color"],
                 lw=co["lw"],
-                ms=0.2,
                 alpha=0.9,
                 label=comp.upper(),
             )

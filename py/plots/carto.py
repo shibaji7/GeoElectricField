@@ -22,17 +22,41 @@ from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 from matplotlib.projections import register_projection
 from shapely.geometry import LineString, MultiLineString
 
-sys.path.extend(["py/", "py/fetch/", "py/process/"])
+sys.path.extend(["py/", "py/fetch/", "py/process/", "py/plots/"])
 
 
 class SDCarto(GeoAxes):
-    name = "sdcarto"
+    name = "SDCarto"
 
     def __init__(self, *args, **kwargs):
         if "map_projection" in kwargs:
             map_projection = kwargs.pop("map_projection")
         else:
             map_projection = cartopy.crs.NorthPolarStereo()
+        # first check if datetime keyword is given!
+        # it should be since we need it for aacgm
+        if "plot_date" in kwargs:
+            self.plot_date = kwargs.pop("plot_date")
+        else:
+            raise TypeError(
+                "need to provide a date using 'plot_date' keyword for aacgmv2 plotting"
+            )
+        # Now work with the coords!
+        supported_coords = ["geo", "aacgmv2", "aacgmv2_mlt"]
+        if "coords" in kwargs:
+            self.coords = kwargs.pop("coords")
+            if self.coords not in supported_coords:
+                err_str = "coordinates not supported, choose from : "
+                for _n, _sc in enumerate(supported_coords):
+                    if _n + 1 != len(supported_coords):
+                        err_str += _sc + ", "
+                    else:
+                        err_str += _sc
+                raise TypeError(err_str)
+        else:
+            self.coords = "geo"
+            print("coords keyword not set, setting it to aacgmv2")
+        # finally, initialize te GeoAxes object
         super().__init__(map_projection=map_projection, *args, **kwargs)
         return
 
@@ -169,119 +193,3 @@ class SDCarto(GeoAxes):
 
 
 register_projection(SDCarto)
-
-
-class MapPlot(object):
-    """
-    Plot stations / data
-    """
-
-    def __init__(self, hemi="north", coords="", dtime=None):
-        self.hemi = hemi
-        self.coords = coords
-        self.dtime = dtime
-        self.ini_figure()
-        return
-
-    def ini_figure(self):
-        """
-        Instatitate figure and axes labels
-        """
-        proj = (
-            cartopy.crs.NorthPolarStereo(-120)
-            if self.hemi == "north"
-            else cartopy.crs.SouthPolarStereo(-120)
-        )
-
-        self.fig = plt.figure(dpi=300, figsize=(3, 3))
-        self.ax = self.fig.add_subplot(111, projection="sdcarto", map_projection=proj)
-        self.ax.overaly_coast_lakes(lw=0.4, alpha=0.4)
-        if self.hemi == "north":
-            self.ax.set_extent([-180, 180, 30, 90], crs=cartopy.crs.PlateCarree())
-        else:
-            self.ax.set_extent([-180, 180, -90, -30], crs=cartopy.crs.PlateCarree())
-        plt_lons = np.arange(-180, 181, 30)
-        mark_lons = np.arange(-180, 181, 30)
-        plt_lats = (
-            np.arange(30, 90, 10) if self.hemi == "north" else np.arange(-90, -30, 10)
-        )
-        gl = self.ax.gridlines(crs=cartopy.crs.PlateCarree(), linewidth=0.5)
-        gl.xlocator = mticker.FixedLocator(plt_lons)
-        gl.ylocator = mticker.FixedLocator(plt_lats)
-        gl.xformatter = LONGITUDE_FORMATTER
-        gl.yformatter = LATITUDE_FORMATTER
-        gl.n_steps = 90
-        self.ax.mark_latitudes(plt_lats, fontsize="xx-small", color="darkblue")
-        self.ax.mark_longitudes(plt_lons, fontsize="xx-small", color="darkblue")
-        #         #self.ax.text(0.5, 0.95, self.date_string(), ha="center", va="center",
-        #         #             transform=self.ax.transAxes, fontsize="medium")
-        self.proj = proj
-        self.geo = cartopy.crs.Geodetic()
-        self.ax.text(
-            -0.02,
-            0.99,
-            "Coords: Geo",
-            ha="center",
-            va="top",
-            transform=self.ax.transAxes,
-            fontsize="xx-small",
-            rotation=90,
-        )
-        return
-
-    def put_stations(
-        self,
-        lat,
-        lon,
-        name=None,
-        marker="D",
-        zorder=2,
-        markerColor="m",
-        markerSize=2,
-        fontSize="xx-small",
-        font_color="m",
-        xOffset=-5,
-        yOffset=-1.5,
-    ):
-        self.ax.scatter(
-            [lon],
-            [lat],
-            s=markerSize,
-            marker=marker,
-            color=markerColor,
-            zorder=zorder,
-            transform=self.geo,
-            lw=0.8,
-            alpha=0.4,
-        )
-
-        if name:
-            x, y = self.projection.transform_point(
-                lon + xOffset, lat + yOffset, src_crs=self.proj
-            )
-            self.ax.text(
-                x,
-                y,
-                name.upper(),
-                ha="center",
-                va="center",
-                transform=self.proj,
-                fontdict={"color": font_color, "size": fontSize},
-                alpha=0.4,
-            )
-        return
-
-    def draw_GC(self, lat1, lon1, lat2, lon2, color="k"):
-        self.ax.plot(
-            [lon1, lon2], [lat1, lat2], color=color, transform=self.geo, ls="-", lw=0.3
-        )
-        return
-
-    def save(self, fname):
-        self.fig.savefig(fname, bbox_inches="tight")
-        return
-
-
-if __name__ == "__main__":
-    mp = MapPlot()
-    mp.save("out.png")
