@@ -103,13 +103,14 @@ def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None, dT=1)
     geographic position
     """
     from get_efields import load_MT_site
-
     if station:
         site = load_MT_site(station)
     elif (glat is not None) and (glon is not None):
         station, site = get_nearest_station(glat, glon)
+    else:
+        station = None
     if site:
         Ex, Ey = site.convolve_fft(magX, magY, dt=dT)
     else:
         Ex, Ey = [], []
-    return Ex, Ey, site
+    return Ex, Ey, site, station

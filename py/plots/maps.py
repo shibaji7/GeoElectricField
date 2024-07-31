@@ -35,19 +35,19 @@ class Map(object):
         self.date = date
         self.nrows, self.ncols = nrows, ncols
         self._num_subplots_created = 0
-        self.fig = plt.figure(figsize=(4 * ncols, 4 * nrows), dpi=300)
+        self.fig = plt.figure(figsize=(3 * ncols, 3 * nrows), dpi=300)
         self.coord = coord
-        plt.suptitle(
-            f"{self.date_string()} / {fig_title}"
-            if fig_title
-            else f"{self.date_string()}",
-            x=0.15,
-            y=0.72,
-            ha="left",
-            fontweight="bold",
-            fontsize=8,
-        )
         self.ax = self.add_axes()
+        # self.ax.text(
+        #     0.1, 1.05,
+        #     f"{fig_title}: {self.date_string()}"
+        #     if fig_title
+        #     else f"{self.date_string()}",
+        #     ha="left",
+        #     fontweight="bold",
+        #     fontsize=10,
+        #     transform=self.ax.transAxes,
+        # )
         return
 
     def add_axes(self):
@@ -56,8 +56,8 @@ class Map(object):
         """
         from carto import SDCarto
         self._num_subplots_created += 1
-        self.proj = cartopy.crs.NorthPolarStereo(central_longitude=-90.0)
-        #self.proj = cartopy.crs.Stereographic(central_longitude=-90.0, central_latitude=45.0)
+        #self.proj = cartopy.crs.NorthPolarStereo(central_longitude=-90.0)
+        self.proj = cartopy.crs.Stereographic(central_longitude=-90.0, central_latitude=45.0)
         #proj = cartopy.crs.PlateCarree(central_longitude=-90.0)
         ax = self.fig.add_subplot(
             100 * self.nrows + 10 * self.ncols + self._num_subplots_created,
@@ -67,11 +67,11 @@ class Map(object):
             plot_date=self.date,
         )
         ax.overaly_coast_lakes(lw=0.4, alpha=0.4)
-        self.lon_lat_bb = [-180, 180, 40, 90]
+        self.lon_lat_bb = [-130, -70, 30, 80]
         ax.set_extent(self.lon_lat_bb, crs=cartopy.crs.PlateCarree())
         plt_lons = np.arange(-180, 181, 15)
         mark_lons = np.arange(-180, 181, 30)
-        plt_lats = np.arange(40, 90, 10)
+        plt_lats = np.arange(30, 80, 10)
         gl = ax.gridlines(crs=cartopy.crs.PlateCarree(), linewidth=0.5)
         gl.xlocator = mticker.FixedLocator(plt_lons)
         gl.ylocator = mticker.FixedLocator(plt_lats)
@@ -81,16 +81,16 @@ class Map(object):
         #ax.mark_latitudes(plt_lats, fontsize="xx-small", color="k")
         #ax.mark_longitudes(mark_lons, fontsize="xx-small", color="k")
         self.geo = cartopy.crs.PlateCarree()
-        ax.text(
-            -0.02,
-            0.99,
-            "Coord: Geo",
-            ha="center",
-            va="top",
-            transform=ax.transAxes,
-            fontsize="xx-small",
-            rotation=90,
-        )
+        # ax.text(
+        #     -0.02,
+        #     0.99,
+        #     "Coord: Geo",
+        #     ha="center",
+        #     va="top",
+        #     transform=ax.transAxes,
+        #     fontsize=10,
+        #     rotation=90,
+        # )
         from cartopy.feature.nightshade import Nightshade
         ax.add_feature(Nightshade(self.date, alpha=0.2))
         return ax
@@ -108,13 +108,13 @@ class Map(object):
         instrument,
         station_point=dict(
             ms=2, marker="D",
-            color="r", fontSize=5, 
-            xOff=-5, yOff=-1.5
+            color="r", fontSize=4, 
+            xOff=-1.5, yOff=-1.5
         ),
         quiver_style=dict(
-            scale=500,
+            scale=300,
             headaxislength=0,
-            width=0.6,
+            width=0.1,
             scale_units="inches",
         )
     ):
@@ -135,7 +135,7 @@ class Map(object):
                 ha="center", va="center", 
                 transform=self.proj,
                 fontdict={"color":station_point["color"], "size":station_point["fontSize"]}, 
-                alpha=0.4
+                alpha=0.7
             )
             xy = self.proj.transform_points(
                 self.geo, 
@@ -151,14 +151,16 @@ class Map(object):
                 scale=quiver_style["scale"],
                 headaxislength=quiver_style["headaxislength"],
                 scale_units=quiver_style["scale_units"],
+                color="blue",
+                linewidth=0.4,
             )
             self.ax.quiverkey(
                 ql,
-                0.85,
-                1.05,
-                1,
-                r"$\vec{B}$",
-                labelpos="N",
+                0.8,
+                0.9,
+                50,
+                r"$\vec{B}$ [50 nT]",
+                labelpos="S",
                 transform=self.ax.transAxes,
                 color="k",
                 fontproperties={"size": 8},
