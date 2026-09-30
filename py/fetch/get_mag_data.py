@@ -59,6 +59,7 @@ class SuperMAG(object):
         uid="shibaji7",
         stations=[],
         flags="mlt,mag,geo,decl,sza",
+        baseline=None,
     ):
         """
         Parameters:
@@ -68,12 +69,18 @@ class SuperMAG(object):
         uid: User ID
         stations: List of station codes
         flags: Flags of data tech
+        baseline: SuperMAG baseline mode. Use ``"none"`` for raw magnetic
+            field values, ``"yearly"`` for explicitly yearly-baselined
+            values, or ``None`` to preserve the historical request/cache.
         """
         self.base = base
         os.makedirs(base, exist_ok=True)
         self.dates = dates
         self.logon = uid
         self.flags = flags
+        if baseline not in (None, "none", "yearly"):
+            raise ValueError("baseline must be None, 'none', or 'yearly'")
+        self.baseline = baseline
         self.stations = self.load_stations() if len(stations)==0 else stations
         self.fetch_baseline_substracted_datasets()
         return
@@ -93,14 +100,46 @@ class SuperMAG(object):
         """
         self.sm_data = pd.DataFrame()
         extent = int((self.dates[1] - self.dates[0]).total_seconds())
-        fname = self.base + "supermag.csv"
+        if self.baseline == "none":
+            fname = self.base + "supermag-raw.csv"
+        elif self.baseline == "yearly":
+            fname = self.base + "supermag-baseline-yearly.csv"
+        else:
+            fname = self.base + "supermag.csv"
+        request_flags = self.flags
+        if self.baseline is not None:
+            request_flags = ",".join(
+                flag for flag in request_flags.split(",")
+                if not flag.strip().lower().startswith("baseline=")
+                and flag.strip().lower() != "delta=start"
+                and flag.strip()
+            )
+            request_flags += ",baseline=" + self.baseline
         if not os.path.exists(fname):
             logger.info(f"Total stations to be fetched {len(self.stations)}")
             for i, stn in tqdm(enumerate(self.stations)):
                 (status, data) = SuperMAGGetData(
-                    self.logon, self.dates[0], extent, self.flags, stn
+                    self.logon, self.dates[0], extent, request_flags, stn
                 )
                 if len(data) > 0:
+                    required = {"N", "E", "Z", "tval"}
+                    missing = required.difference(data.columns)
+                    if missing:
+                        logger.warning(
+                            f"Skipping station {stn}: missing fields {sorted(missing)}"
+                        )
+                        logger.info(
+                            f"SM inventory fetch data stats[{stn}]: {status}, idx:{i}"
+                        )
+                        continue
+                    if len(data) < 2:
+                        logger.warning(
+                            f"Skipping station {stn}: fewer than two data records"
+                        )
+                        logger.info(
+                            f"SM inventory fetch data stats[{stn}]: {status}, idx:{i}"
+                        )
+                        continue
                     # if np.mean(data.sza) < 110.0:
                     for comp in ["N", "E", "Z"]:
                         for cord in ["nez", "geo"]:
@@ -119,7 +158,15 @@ class SuperMAG(object):
             self.sm_data.to_csv(fname, header=True, index=False, float_format="%g")
         else:
             logger.info(f"SM inventory is local: {0}")
-            self.sm_data = pd.read_csv(fname, parse_dates=["tval"])
+            if os.path.getsize(fname) == 0:
+                logger.warning(f"SuperMAG cache is empty: {fname}")
+                return
+            try:
+                self.sm_data = pd.read_csv(fname, parse_dates=["tval"])
+            except pd.errors.EmptyDataError:
+                logger.warning(f"SuperMAG cache is empty: {fname}")
+                self.sm_data = pd.DataFrame()
+                return
             self.sm_data["glon"] = np.round(np.mod(self.sm_data["glon"]+180,360)-180, 2)
         return
 

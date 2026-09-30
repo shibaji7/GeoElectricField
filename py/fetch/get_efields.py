@@ -16,7 +16,11 @@ def load_MT_site(station, MT_data_folder=".data/EMTF/"):
     """
 
     xml_file = glob.glob(
-        MT_data_folder + "MT_TF_*" + station + "*/*" + station + "*.xml"
+        os.path.join(
+            MT_data_folder,
+            "MT_TF_*" + station + "*",
+            "*" + station + "*.xml",
+        )
     )
 
     # Reads in an IRIS XML file and returns a Site object

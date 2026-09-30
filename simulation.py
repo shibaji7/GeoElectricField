@@ -52,7 +52,10 @@ def setup(base):
     )
     return
 
-def stack_plots(ev, g, smag, omni, dates, fname, hr=1):
+def stack_plots(
+    ev, g, smag, omni, dates, fname, hr=1,
+    stack_mag_ylim=None, stack_ae_ylim=None,
+):
     fig = plt.figure(figsize=(6, 6*2), dpi=240)
     ax = fig.add_subplot(611)
     ax.set_ylabel(r"Irradiance ($W/m^2$)")
@@ -160,68 +163,193 @@ def stack_plots(ev, g, smag, omni, dates, fname, hr=1):
     ax.plot(utc, omni["AU"], "bo", ms=0.4, label="AU")
     ax.plot(utc, omni["AE"], "ro", ms=0.4, label="AE")
     ax.legend(loc=2)
-    ax.set_ylim(-200, 200)
+    ax.set_ylim(*(stack_ae_ylim or (-200, 200)))
     ax.axvline(ev, ls="-", lw=1.2, color="k")
     ax.set_xlim(dates)
     ax.set_xlabel("Time (UT)")
     ax.text(0.1, 0.2, "(f)", ha="left", va="center", transform=ax.transAxes)
     fig.savefig(fname, bbox_inches="tight")
-    fig.savefig(fname.replace(".png", ".eps"), bbox_inches="tight")
+    # fig.savefig(fname.replace(".png", ".eps"), bbox_inches="tight")
 
     
     fig = plt.figure(figsize=(6, 18), dpi=240)
-    for i, stn in enumerate(smag.stations[:6]):
+    stack_mag_ylim = stack_mag_ylim or (-150, 150)
+    plotted_stations = smag.stations[:6]
+    nplots = len(plotted_stations)
+    for i, stn in enumerate(plotted_stations):
         data = smag.sm_data[smag.sm_data.iaga == stn]
         ax = fig.add_subplot(912+i)
-        ax.set_ylabel(r"$\delta$ (nT)")
+        ax.set_ylabel(r"$dB_x,dB_y$ (nT)")
         ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
         ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, hr)))
         ax.set_xlim(dates)
-        if i<5: ax.set_xticklabels([])
+        if i < nplots - 1:
+            ax.set_xticklabels([])
         ax.axhline(0, ls="--", lw=0.4, color="k")
-        for comp, col in zip(["N", "E", "Z"], ["r", "g", "b"]):
-            ax.plot(
-                data.tval,
-                data[comp + "_geo"],
-                ls="-",
-                color=col,
-                lw=0.6,
-                label=comp+r"$_{geo}$",
-            )
-        if i==0: 
-            ax.legend(loc=1, fontsize=8)
+        x_key = "dB_N_geo" if "dB_N_geo" in data.columns else "N_geo"
+        y_key = "dB_E_geo" if "dB_E_geo" in data.columns else "E_geo"
+        ax.plot(data.tval, data[x_key], ls="-", color="#0b3d91", lw=0.7,
+                label=r"$dB_x$")
+        ax.plot(data.tval, data[y_key], ls="-", color="#8b0000", lw=0.7,
+                label=r"$dB_y$")
+        if i==0:
             ax.text(0.1, 1.05, dates[1].strftime("%d, %b %Y"), ha="left", va="center", transform=ax.transAxes)
-        ax.set_ylim(-150, 150)
-        if i==5:
+        ax.set_ylim(*stack_mag_ylim)
+        if i == nplots - 1:
             ax.set_xlabel("Time (UT)")
         txt = f"({chr(97+i)}) {stn}" + "\n" + rf"$\theta_m,\phi_m$={'%.1f'%data.mlat.tolist()[0]}, {'%.1f'%data.mlon.tolist()[0]}"
                 #"\n"+ fr"$\chi$={'%.2f'%np.mean(data.sza)}"
                 #rf"$\theta_g,\phi_g$={data.glat.tolist()[0]}, {data.glon.tolist()[0]}" + \
         ax.axvline(ev, ls="-", lw=0.5, color="k")
         ax.text(0.3, 0.2, txt, ha="center", va="center", transform=ax.transAxes, fontdict={"size":8})
-        ax = ax.twinx()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(r"%H^{%M}"))
-        ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, hr)))
-        ax.set_xlim(dates)
-        ax.plot(
-            data.tval,
-            data["dBdt"],
-            ls="-",
-            color="k",
-            lw=0.4,
-        )
-        if i==3: 
-            ax.text(
-                1.1, 1.0,
-                r"$\frac{\partial |B|}{\partial t}$, (nT $s^-1$)",
-                rotation=90, transform=ax.transAxes, ha="center", va="center"
-            )
-        if i<5: ax.set_xticklabels([])
-        ax.set_ylim(-0.1,0.1)
+        if i == nplots - 1:
+            ax.legend(loc="upper right", fontsize=7, ncol=2, frameon=False)
         
     fig.savefig(fname.replace(".png", "-mag.png"), bbox_inches="tight")
-    fig.savefig(fname.replace(".png", "-mag.eps"), bbox_inches="tight")
+    # fig.savefig(fname.replace(".png", "-mag.eps"), bbox_inches="tight")
+    plt.close(fig)
     return
+
+
+
+def stack_mag_mod_plots(
+    ev, g, smag, omni, dates, fname, hr=1,
+    stack_mag_ylim=None, stack_ae_ylim=None,
+):
+    """Create a combined 6-by-2 stack/magnetometer publication figure."""
+    output = fname.replace(".png", "-mag-mod.png")
+    fig, axes = plt.subplots(6, 2, figsize=(9.0, 18.0), dpi=240)
+    fig.subplots_adjust(left=0.08, right=0.96, bottom=0.10, top=0.95,
+                        wspace=0.42, hspace=0.14)
+
+    utc = TT.Datetime(omni.Date, omni.ut)
+    fig.suptitle(dates[0].strftime("%d, %b %Y"), y=0.965, fontsize=12)
+
+    def format_time_axis(ax, show_labels=False):
+        ax.set_xlim(dates)
+        ax.xaxis.set_major_locator(mdates.HourLocator(byhour=range(0, 24, hr)))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+        ax.tick_params(axis="x", labelbottom=show_labels, labelsize=12)
+        ax.tick_params(axis="y", labelsize=12)
+
+    # Upper row: the six space-weather panels from stack.png.
+    ax = axes[0, 0]
+    ax.semilogy(g.dfs["goes"].time, g.dfs["goes"].xrsa,
+                marker="o", color="b", ls="None", ms=0.3,
+                label=r"$0.05$--$0.4$ nm")
+    ax.semilogy(g.dfs["goes"].time, g.dfs["goes"].xrsb,
+                marker="o", color="r", ls="None", ms=0.3,
+                label=r"$0.1$--$0.8$ nm")
+    ax.set_ylim(1e-8, 1e-2)
+    ax.set_ylabel(r"GOES ($W/m^2$)", fontsize=12)
+    ax.legend(loc="lower right", fontsize=10, frameon=False)
+    ax.text(0.02, 0.93, "(a)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    ax = axes[1, 0]
+    ax.plot(utc, omni["BzGSM"], "bo", ms=0.4, label=r"$B_z$")
+    ax.plot(utc, omni["ByGSM"], "ro", ms=0.4, label=r"$B_y$")
+    ax.axhline(0, lw=0.3, ls="--", color="k")
+    ax.set_ylim(-20, 20)
+    ax.set_ylabel(r"$B_{y,z}$ (nT)", fontsize=12)
+    ax.legend(loc="upper right", fontsize=10, frameon=False)
+    ax.text(0.02, 0.93, "(b)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    ax = axes[2, 0]
+    ax.plot(utc, omni["ProtonDensity"], "ko", ms=0.4)
+    ax.set_ylim(0, 10)
+    ax.set_ylabel(r"Density (cm$^{-3}$)", fontsize=12)
+    ax2 = ax.twinx()
+    ax2.plot(utc, omni["FlowSpeed"], "bo", ms=0.4)
+    ax2.set_ylim(200, 500)
+    ax2.set_ylabel(r"Speed (km s$^{-1}$)", fontsize=12, color="blue", labelpad=9)
+    ax.text(0.02, 0.93, "(c)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    ax = axes[3, 0]
+    ax.plot(utc, omni["FlowPressure"], "ko", ms=0.4)
+    ax.set_ylim(0, 5)
+    ax.set_ylabel(r"Pressure (nPa)", fontsize=12)
+    ax.text(0.02, 0.93, "(d)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    ax = axes[4, 0]
+    ax.plot(utc, omni["SymH"], "ko", ms=0.4)
+    ax.set_ylim(-50, 50)
+    ax.set_ylabel(r"Sym-H (nT)", fontsize=12)
+    ax2 = ax.twinx()
+    ax2.plot(utc, omni["AsyH"], "bo", ms=0.4)
+    ax2.set_ylim(0, 150)
+    ax2.set_ylabel(r"Asy-H (nT)", fontsize=12, color="blue", labelpad=9)
+    ax.text(0.02, 0.93, "(e)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    ax = axes[5, 0]
+    ax.plot(utc, omni["AL"], "ko", ms=0.4, label="AL")
+    ax.plot(utc, omni["AU"], "bo", ms=0.4, label="AU")
+    ax.plot(utc, omni["AE"], "ro", ms=0.4, label="AE")
+    ax.set_ylim(*(stack_ae_ylim or (-200, 200)))
+    ax.set_ylabel(r"AL/AU/AE (nT)", fontsize=12)
+    ax.legend(loc="upper right", fontsize=10, frameon=False)
+    ax.text(0.02, 0.93, "(f)", transform=ax.transAxes, fontsize=12,
+            va="top", fontweight="bold")
+
+    for row in range(6):
+        ax = axes[row, 0]
+        format_time_axis(ax, show_labels=(row == 5))
+        ax.axvline(ev, ls="-", lw=0.8, color="k")
+
+    # Right column: six ordered magnetometer stations.
+    plotted_stations = smag.stations[:6]
+    stack_mag_ylim = stack_mag_ylim or (-150, 150)
+    for i, ax in enumerate(axes[:, 1]):
+        if i >= len(plotted_stations):
+            ax.axis("off")
+            continue
+        stn = plotted_stations[i]
+        data = smag.sm_data[smag.sm_data.iaga == stn]
+        if data.empty:
+            ax.axis("off")
+            continue
+        x_key = "dB_N_geo" if "dB_N_geo" in data.columns else "N_geo"
+        y_key = "dB_E_geo" if "dB_E_geo" in data.columns else "E_geo"
+        line_x, = ax.plot(data.tval, data[x_key], color="#0b3d91", lw=0.8,
+                          label=r"$dB_x$", ls="-")
+        line_y, = ax.plot(data.tval, data[y_key], color="#8b0000", lw=0.8,
+                          label=r"$dB_y$", ls="-")
+        if i == 0:
+            ax.legend([line_x, line_y], [r"$dB_x$", r"$dB_y$"],
+                      loc="lower right", fontsize=10, ncol=2, frameon=False)
+        ax.axhline(0, ls="--", lw=0.35, color="k")
+        ax.axvline(ev, ls="-", lw=0.8, color="k")
+        ax.set_ylim(*stack_mag_ylim)
+        ax.text(0.97, 0.90, stn, transform=ax.transAxes,
+                ha="right", va="top", fontsize=12)
+        ax.text(0.02, 0.93, f"({chr(103 + i)})", transform=ax.transAxes,
+                fontsize=12, va="top", fontweight="bold")
+        ax.set_ylabel(r"$\Delta B_{x,y}$ (nT)", fontsize=12, labelpad=8)
+        lat_key = "mlat" if "mlat" in data.columns else "glat"
+        lon_key = "mlon" if "mlon" in data.columns else "glon"
+        if (lat_key in data.columns and lon_key in data.columns
+                and data[lat_key].notna().any() and data[lon_key].notna().any()):
+            theta_m = float(data[lat_key].dropna().iloc[0])
+            phi_m = float(data[lon_key].dropna().iloc[0])
+            ax.text(
+                0.04, 0.16,
+                rf"$\theta_m,\phi_m$={theta_m:.1f}, {phi_m:.1f}",
+                transform=ax.transAxes,
+                fontsize=12,
+                va="bottom",
+            )
+        format_time_axis(ax, show_labels=(i == 5))
+
+    axes[5, 0].set_xlabel("Time (UT)", fontsize=12)
+    axes[5, 1].set_xlabel("Time (UT)", fontsize=12)
+    fig.subplots_adjust(hspace=0.1)
+    fig.savefig(output, bbox_inches="tight")
+    plt.close(fig)
+    return output
 
 
 def getOMNI(year, Date, ut=[0.0,24.0]):

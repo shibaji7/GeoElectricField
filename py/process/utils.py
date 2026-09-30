@@ -58,9 +58,9 @@ def calculate_GC_distance(lat1, lon1, lat2, lon2, method="GC", R=6371.0):
 
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
     if method == "GC":
-        gc = R * (
-            acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2))
-        )
+        arg = sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2)
+        arg = max(-1.0, min(1.0, arg))
+        gc = R * acos(arg)
     if method == "haversine":
         dlon = lon2 - lon1
         dlat = lat2 - lat1
@@ -78,7 +78,7 @@ def get_all_stations(_dir_=".data/EMTF/"):
     return stations
 
 
-def get_nearest_station(glat, glon):
+def get_nearest_station(glat, glon, MT_data_folder=".data/EMTF/"):
     """
     Get nearest goegraphic station given by a
     laitiude longitude position
@@ -90,13 +90,17 @@ def get_nearest_station(glat, glon):
         lambda r: calculate_GC_distance(glat, glon, r["Latitude"], r["Longitude"]),
         axis=1,
     )
-    idx = stations.GC_km.argmin()
-    station = stations.loc[idx]
-    site = load_MT_site(station.Station)
-    return station, site
+    stations = stations.sort_values("GC_km").reset_index(drop=True)
+
+    for _, station in stations.iterrows():
+        site = load_MT_site(station.Station, MT_data_folder=MT_data_folder)
+        if site is not None:
+            return station, site
+
+    return None, None
 
 
-def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None, dT=1):
+def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None, dT=1, MT_data_folder=".data/EMTF/"):
     """
     Compute Egeo from Bgeo
     given station name or nearest
@@ -104,9 +108,11 @@ def compute_Egeo_from_Bgeo(magX, magY, station=None, glat=None, glon=None, dT=1)
     """
     from get_efields import load_MT_site
     if station:
-        site = load_MT_site(station)
+        site = load_MT_site(station, MT_data_folder=MT_data_folder)
+        if site is None and (glat is not None) and (glon is not None):
+            station, site = get_nearest_station(glat, glon, MT_data_folder=MT_data_folder)
     elif (glat is not None) and (glon is not None):
-        station, site = get_nearest_station(glat, glon)
+        station, site = get_nearest_station(glat, glon, MT_data_folder=MT_data_folder)
     else:
         station = None
     if site:

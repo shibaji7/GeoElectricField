@@ -31,12 +31,18 @@ class Map(object):
         nrows=1,
         ncols=1,
         coord="geo",
+        region="north_america",
+        figsize=None,
     ):
         self.date = date
         self.nrows, self.ncols = nrows, ncols
         self._num_subplots_created = 0
-        self.fig = plt.figure(figsize=(3 * ncols, 3 * nrows), dpi=300)
+        self.fig = plt.figure(
+            figsize=figsize or (3 * ncols, 3 * nrows),
+            dpi=300,
+        )
         self.coord = coord
+        self.region = region
         self.ax = self.add_axes()
         # self.ax.text(
         #     0.1, 1.05,
@@ -57,7 +63,38 @@ class Map(object):
         from carto import SDCarto
         self._num_subplots_created += 1
         #self.proj = cartopy.crs.NorthPolarStereo(central_longitude=-90.0)
-        self.proj = cartopy.crs.Stereographic(central_longitude=-90.0, central_latitude=45.0)
+        regions = {
+            "north_america": {
+                "projection": cartopy.crs.Stereographic(
+                    central_longitude=-90.0, central_latitude=45.0
+                ),
+                "extent": [-130, -70, 30, 80],
+            },
+            "conus": {
+                "projection": cartopy.crs.Stereographic(
+                    central_longitude=-96.0, central_latitude=37.5
+                ),
+                "extent": [-125, -66.9, 24.4, 49.4],
+            },
+            "europe": {
+                "projection": cartopy.crs.Stereographic(
+                    central_longitude=10.0, central_latitude=55.0
+                ),
+                "extent": [-30, 45, 30, 80],
+            },
+            "north_polar": {
+                "projection": cartopy.crs.NorthPolarStereo(
+                    central_longitude=0.0
+                ),
+                "extent": [-180, 180, 30, 90],
+            },
+        }
+        if self.region not in regions:
+            raise ValueError(
+                f"Unknown map region '{self.region}'. "
+                f"Choose from {', '.join(regions)}."
+            )
+        self.proj = regions[self.region]["projection"]
         #proj = cartopy.crs.PlateCarree(central_longitude=-90.0)
         ax = self.fig.add_subplot(
             100 * self.nrows + 10 * self.ncols + self._num_subplots_created,
@@ -67,7 +104,7 @@ class Map(object):
             plot_date=self.date,
         )
         ax.overaly_coast_lakes(lw=0.4, alpha=0.4)
-        self.lon_lat_bb = [-130, -70, 30, 80]
+        self.lon_lat_bb = regions[self.region]["extent"]
         ax.set_extent(self.lon_lat_bb, crs=cartopy.crs.PlateCarree())
         plt_lons = np.arange(-180, 181, 15)
         mark_lons = np.arange(-180, 181, 30)
@@ -106,6 +143,7 @@ class Map(object):
     def plot_instrument(
         self, 
         instrument,
+        show_label=True,
         station_point=dict(
             ms=2, marker="D",
             color="r", fontSize=4, 
@@ -116,27 +154,33 @@ class Map(object):
             headaxislength=0,
             width=0.1,
             scale_units="inches",
-        )
+        ),
+        quiver_key=True,
+        quiver_key_value=50,
+        quiver_key_label=r"$\Delta \vec{B}$ [50 nT]",
+        show_station=True,
     ):
         if (self.lon_lat_bb[2] <= instrument["lat"] <= self.lon_lat_bb[3]) and\
          (self.lon_lat_bb[0] <= instrument["lon"] <= self.lon_lat_bb[1]):
-            self.ax.scatter(
-                [instrument["lon"]], [instrument["lat"]], transform=self.geo, 
-                s=station_point["ms"], marker=station_point["marker"], 
-                color=station_point["color"]
-            )
-            x, y = self.proj.transform_point(
-                instrument["lon"]+station_point["xOff"], 
-                instrument["lat"]+station_point["yOff"], 
-                self.geo
-            )
-            self.ax.text(
-                x, y, instrument["code"], 
-                ha="center", va="center", 
-                transform=self.proj,
-                fontdict={"color":station_point["color"], "size":station_point["fontSize"]}, 
-                alpha=0.7
-            )
+            if show_station:
+                self.ax.scatter(
+                    [instrument["lon"]], [instrument["lat"]], transform=self.geo,
+                    s=station_point["ms"], marker=station_point["marker"],
+                    color=station_point["color"]
+                )
+            if show_label:
+                x, y = self.proj.transform_point(
+                    instrument["lon"]+station_point["xOff"], 
+                    instrument["lat"]+station_point["yOff"], 
+                    self.geo
+                )
+                self.ax.text(
+                    x, y, instrument["code"], 
+                    ha="center", va="center", 
+                    transform=self.proj,
+                    fontdict={"color":station_point["color"], "size":station_point["fontSize"]}, 
+                    alpha=0.7
+                )
             xy = self.proj.transform_points(
                 self.geo, 
                 np.array([instrument["lon"]]), 
@@ -154,18 +198,20 @@ class Map(object):
                 color="blue",
                 linewidth=0.4,
             )
-            self.ax.quiverkey(
-                ql,
-                0.8,
-                0.9,
-                50,
-                r"$\vec{B}$ [50 nT]",
-                labelpos="S",
-                transform=self.ax.transAxes,
-                color="k",
-                fontproperties={"size": 8},
-            )
-        return
+            if quiver_key:
+                self.ax.quiverkey(
+                    ql,
+                    0.8,
+                    0.9,
+                    quiver_key_value,
+                    quiver_key_label,
+                    labelpos="S",
+                    transform=self.ax.transAxes,
+                    color="k",
+                    fontproperties={"size": 8},
+                )
+            return ql
+        return None
 
     def save(self, filepath):
         self.fig.savefig(filepath, facecolor=(1, 1, 1, 1))
