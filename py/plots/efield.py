@@ -312,6 +312,10 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
     case_data = data_by_station[case_station]
     magnetic_north = detrend_magnetic_field(case_data["N_geo"].to_numpy(), dT=dT)
     magnetic_east = detrend_magnetic_field(case_data["E_geo"].to_numpy(), dT=dT)
+    
+    magnetic_north = magnetic_north - np.median(magnetic_north[0:30])
+    magnetic_east = magnetic_east - np.median(magnetic_east[0:30])
+            
     site = None
     if case_mt_site:
         requested = case_mt_site.upper()
@@ -436,8 +440,16 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         primary_site_name = str(getattr(site, "name", None) or case_mt_site or "MT").upper()
         ax_bottom.plot(
             case_data.tval,
-            e_magnitude,
+            e_east,
             color="#1f77b4",
+            lw=1.0,
+            ls="-",
+            label=rf"{primary_site_name}",
+        )
+        ax_bottom.plot(
+            case_data.tval,
+            e_north,
+            color="#1fb444",
             lw=1.0,
             ls="-",
             label=rf"{primary_site_name}",
@@ -447,39 +459,40 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
             plt.Line2D([], [], color="#1f77b4",
                        label=rf"$|\mathcal{{E}}|$ ({primary_site_name})")
         ]
-        if vaq55_site is not None:
-            e_magnitude_55 = np.hypot(e_east_55, e_north_55)
-            ax_bottom.plot(
-                case_data.tval,
-                e_magnitude_55,
-                color="#d62728",
-                lw=1.0,
-                ls="-",
-                label=r"VAQ55",
-            )
-            magnitude_series.append(e_magnitude_55)
-            legend_handles.append(
-                plt.Line2D([], [], color="#d62728", label=r"$|\mathcal{E}|$ (VAQ55)")
-            )
+        # if vaq55_site is not None:
+        #     e_magnitude_55 = np.hypot(e_east_55, e_north_55)
+        #     ax_bottom.plot(
+        #         case_data.tval,
+        #         e_magnitude_55,
+        #         color="#d62728",
+        #         lw=1.0,
+        #         ls="-",
+        #         label=r"VAQ55",
+        #     )
+        #     magnitude_series.append(e_magnitude_55)
+        #     legend_handles.append(
+        #         plt.Line2D([], [], color="#d62728", label=r"$|\mathcal{E}|$ (VAQ55)")
+        #     )
         ax_bottom.set_ylabel(r"$|\mathcal{E}|$ (mV/km)")
         finite_magnitude = np.concatenate([
             np.asarray(series)[np.isfinite(series)] for series in magnitude_series
         ])
+        ax_bottom.set_ylim(-1000, 2000)
         positive_magnitude = finite_magnitude[finite_magnitude > 0.0]
-        ax_bottom.set_yscale("log")
-        if positive_magnitude.size:
-            magnitude_min = float(np.min(positive_magnitude))
-            magnitude_max = float(np.max(positive_magnitude))
-        else:
-            magnitude_min, magnitude_max = 1.0, 10.0
-        if case_efield_ylim is None:
-            ax_bottom.set_ylim(1e-1, 2e3)
-            # ax_bottom.set_ylim(magnitude_min * 0.8, magnitude_max * 1.2)
-        else:
-            lower, upper = case_efield_ylim
-            lower = lower if lower > 0.0 else magnitude_min * 0.8
-            upper = upper if upper > lower else magnitude_max * 1.2
-            ax_bottom.set_ylim(1e-1, 2e3)
+        # ax_bottom.set_yscale("log")
+        # if positive_magnitude.size:
+        #     magnitude_min = float(np.min(positive_magnitude))
+        #     magnitude_max = float(np.max(positive_magnitude))
+        # else:
+        #     magnitude_min, magnitude_max = 1.0, 10.0
+        # if case_efield_ylim is None:
+        #     # ax_bottom.set_ylim(1e-1, 2e3)
+        #     # ax_bottom.set_ylim(magnitude_min * 0.8, magnitude_max * 1.2)
+        # else:
+        #     lower, upper = case_efield_ylim
+        #     lower = lower if lower > 0.0 else magnitude_min * 0.8
+        #     upper = upper if upper > lower else magnitude_max * 1.2
+        #     ax_bottom.set_ylim(1e-1, 2e3)
         ax_bottom.axvline(event, color="0.15", lw=0.7)
         ax_bottom.set_xlabel(f"UT on {event:%Y-%m-%d}")
         ax_bottom.legend(

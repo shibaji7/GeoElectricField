@@ -33,6 +33,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib.ticker import LogFormatterMathtext
 import numpy as np
 import pandas as pd
 import toml
@@ -378,19 +379,11 @@ def plot_spatial_response(records, periods, rho_period, bounds, output, quiver_r
         axes = axes.ravel()
         letters = "abcdef"
 
-        rho_values = np.asarray(
-            [item["rho"][period] for item in records for period in periods],
-            dtype=float,
-        )
-        rho_values = rho_values[np.isfinite(rho_values) & (rho_values > 0.0)]
-        if rho_values.size:
-            lower = 10.0 ** np.floor(np.log10(np.percentile(rho_values, 2)))
-            upper = 10.0 ** np.ceil(np.log10(np.percentile(rho_values, 98)))
-            if lower == upper:
-                lower, upper = lower / 10.0, upper * 10.0
-            rho_norm = LogNorm(vmin=lower, vmax=upper)
-        else:
-            rho_norm = LogNorm(vmin=1.0, vmax=1.0e5)
+        # Keep one fixed logarithmic normalization for all three periods.
+        # This makes panel colors directly comparable while ensuring that
+        # decade-to-decade changes are visible in the shared colorbar.
+        lower, upper = 1.0e11, 1.0e16
+        rho_norm = LogNorm(vmin=lower, vmax=upper, clip=True)
 
         rho_mappable = None
         for column, period in enumerate(periods):
@@ -428,6 +421,8 @@ def plot_spatial_response(records, periods, rho_period, bounds, output, quiver_r
             colorbar_axis = fig.add_axes([0.905, 0.565, 0.014, 0.285])
             colorbar = fig.colorbar(rho_mappable, cax=colorbar_axis)
             colorbar.set_label(r"$\rho_a$ ($\Omega$ m)", labelpad=8)
+            colorbar.set_ticks(np.logspace(11, 16, 6))
+            colorbar.ax.yaxis.set_major_formatter(LogFormatterMathtext())
             colorbar_axis.tick_params(labelsize=8, direction="in")
 
         for column, period in enumerate(periods):
@@ -544,7 +539,9 @@ def main():
         rho_period = float(plot_config.get("mt_rho_period", periods[1]))
     if rho_period <= 0.0:
         raise ValueError("--rho-period must be positive.")
-    region = args.region or map_config.get("region", "conus")
+    # Keep the spatial MT figure on CONUS by default.  The regular event
+    # maps may still use the broader event-study region from the TOML file.
+    region = args.region or plot_config.get("mt_region", "conus")
     bounds = map_bounds(region)
 
     data_dir = PROJECT_ROOT / "tmp" / event.strftime("%Y-%m-%d-%H-%M")
