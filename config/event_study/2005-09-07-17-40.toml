@@ -1,7 +1,7 @@
 [event]
 time = "2005-09-07T17:40"
-start = "2005-09-07T00:00"
-end = "2005-09-08T00:00"
+start = "2005-09-07T17:00"
+end = "2005-09-07T20:00"
 mag = ["BOU", "RAL", "PIN", "FRD", "FRN", "TUC"]
 case_station = "FRD"
 case_mt_site = "VAQ58"
@@ -25,9 +25,20 @@ share_efield_sites = true
 [plot]
 stack_mag_ylim = [-150, 150]
 stack_ae_ylim = [-200, 200]
-case_xlim = ["00:00", "23:59"]
+case_xlim = ["17:00", "20:00"]
+case_baseline_hours = 2.0
 case_efield_quiver_limit = 5000.0
 case_efield_exclude_sites = ["CDR009", "KS014", "GRB015", "E90002"]
 mt_response_periods = [60, 1000, 3600]
 mt_rho_period = 1000
 mt_region = "conus"
+# Bin case-study map E-field magnitudes before contouring.
+efield_contour_bin_size_deg = 1.0
+efield_contour_smoothing_sigma = 1.5
+efield_bin_statistic = "percentile"
+efield_bin_percentile = 75.0
+efield_min_stations_per_bin = 3
+efield_min_neighbor_bins = 0.25
+# 0.25 V/km expressed in the E-field units used by the plots.
+# Use 500.0 for 0.5 V/km or 1000.0 for 1 V/km.
+efield_contour_threshold_mV_per_km = 100.0

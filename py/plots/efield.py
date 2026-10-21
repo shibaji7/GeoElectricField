@@ -1,13 +1,24 @@
 """Induced electric-field plots for event studies."""
 
 import glob
+import datetime as dt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.feature.nightshade import Nightshade
 import matplotlib.dates as mdates
+from matplotlib.path import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from scipy.interpolate import griddata
+from scipy.ndimage import (
+    binary_closing,
+    binary_dilation,
+    binary_fill_holes,
+    gaussian_filter,
+    label,
+)
+from scipy.spatial import cKDTree
 
 import bezpy
 from utils import calculate_GC_distance, detrend_magnetic_field
@@ -17,6 +28,263 @@ from maps import Map
 
 EMTF_DATA_FOLDER = ".data/EMTF"
 CONUS_BOUNDS = (-125.0, -66.9, 24.4, 49.4)
+# A compact geographic mask used in addition to the rectangular map extent.
+# The rectangular extent alone includes southern Canada and northern Mexico.
+CONUS_POLYGON = np.asarray([
+    (-124.8, 49.0), (-95.0, 49.0), (-89.5, 48.0), (-84.5, 46.0),
+    (-82.0, 43.0), (-79.0, 43.0), (-75.0, 45.0), (-67.0, 45.0),
+    (-67.0, 25.0), (-80.0, 25.0), (-82.0, 27.0), (-81.0, 30.0),
+    (-89.0, 29.0), (-94.0, 29.0), (-97.0, 26.0), (-106.0, 31.0),
+    (-114.0, 32.0), (-117.0, 32.0), (-120.0, 34.0), (-124.0, 40.0),
+    (-125.0, 46.0),
+])
+_CONUS_PATH = Path(CONUS_POLYGON)
+
+
+def _is_conus_location(longitude, latitude):
+    """Return whether a longitude/latitude point lies in the CONUS mask."""
+    return bool(_CONUS_PATH.contains_point((float(longitude), float(latitude))))
+
+
+def _baseline_correct_component(data, component, baseline_start, reference_time):
+    """Remove a linear pre-event trend and reference a component at event start."""
+    times = data["tval"]
+    values = np.asarray(data[f"{component}_geo"], dtype=float)
+    seconds = (times - baseline_start).dt.total_seconds().to_numpy(dtype=float)
+    baseline_mask = (
+        (times >= baseline_start)
+        & (times < reference_time)
+        & np.isfinite(values)
+    ).to_numpy()
+    if baseline_mask.sum() < 2:
+        raise ValueError(
+            f"At least two finite {component}_geo samples are required between "
+            f"{baseline_start:%H:%M} and {reference_time:%H:%M} UT."
+        )
+
+    coefficients = np.polyfit(seconds[baseline_mask], values[baseline_mask], 1)
+    corrected = values - np.polyval(coefficients, seconds)
+    reference_mask = (
+        (times >= reference_time) & np.isfinite(corrected)
+    ).to_numpy()
+    if not reference_mask.any():
+        raise ValueError(
+            f"No finite {component}_geo sample was found at or after "
+            f"{reference_time:%H:%M} UT."
+        )
+    reference_index = np.flatnonzero(reference_mask)[0]
+    corrected -= corrected[reference_index]
+    return corrected
+
+
+def _case_baseline_corrected_components(
+    data, baseline_start, reference_time
+):
+    """Return N/E components detrended before event start and zeroed at it."""
+    return (
+        _baseline_correct_component(data, "N", baseline_start, reference_time),
+        _baseline_correct_component(data, "E", baseline_start, reference_time),
+    )
+
+
+def _reference_series_at_time(values, times, reference_time):
+    """Subtract the first finite series value at or after ``reference_time``."""
+    referenced = np.asarray(values, dtype=float).copy()
+    reference_mask = (
+        (times >= reference_time) & np.isfinite(referenced)
+    ).to_numpy()
+    if not reference_mask.any():
+        raise ValueError(
+            f"No finite series sample was found at or after "
+            f"{reference_time:%H:%M} UT."
+        )
+    referenced -= referenced[np.flatnonzero(reference_mask)[0]]
+    return referenced
+
+
+def _bin_efield_statistics(
+    longitudes,
+    latitudes,
+    magnitudes_mV_per_km,
+    bounds=CONUS_BOUNDS,
+    bin_size_deg=1.0,
+    statistic="percentile",
+    percentile=75.0,
+):
+    """Bin station magnitudes and calculate one robust value per cell."""
+    west, east, south, north = bounds
+    bin_size = float(bin_size_deg)
+    nlon = int(np.ceil((east - west) / bin_size))
+    nlat = int(np.ceil((north - south) / bin_size))
+    longitude = np.asarray(longitudes, dtype=float)
+    latitude = np.asarray(latitudes, dtype=float)
+    magnitude = np.asarray(magnitudes_mV_per_km, dtype=float)
+    valid = np.isfinite(longitude) & np.isfinite(latitude) & np.isfinite(magnitude)
+    grid = np.full((nlat, nlon), np.nan, dtype=float)
+    counts = np.zeros((nlat, nlon), dtype=int)
+    values_by_bin = {}
+    if not valid.any():
+        lon_edges = west + np.arange(nlon + 1) * bin_size
+        lat_edges = south + np.arange(nlat + 1) * bin_size
+        return lon_edges, lat_edges, grid, counts
+
+    for site_lon, site_lat, site_value in zip(
+        longitude[valid], latitude[valid], magnitude[valid]
+    ):
+        if not _is_conus_location(site_lon, site_lat):
+            continue
+        lon_index = min(max(int((site_lon - west) / bin_size), 0), nlon - 1)
+        lat_index = min(max(int((site_lat - south) / bin_size), 0), nlat - 1)
+        values_by_bin.setdefault((lat_index, lon_index), []).append(float(site_value))
+
+    for (lat_index, lon_index), values in values_by_bin.items():
+        counts[lat_index, lon_index] = len(values)
+        if statistic == "maximum":
+            cell_value = np.max(values)
+        elif statistic == "median":
+            cell_value = np.median(values)
+        elif statistic == "percentile":
+            cell_value = np.percentile(values, float(percentile))
+        else:
+            raise ValueError(f"Unsupported E-field bin statistic: {statistic}")
+        grid[lat_index, lon_index] = float(cell_value)
+
+    lon_edges = west + np.arange(nlon + 1) * bin_size
+    lat_edges = south + np.arange(nlat + 1) * bin_size
+    return lon_edges, lat_edges, grid, counts
+
+
+def _smooth_sparse_efield_grid(grid, sigma=1.5, minimum_weight=0.15):
+    """Gaussian-smooth sparse bins without treating missing cells as zero."""
+    values = np.asarray(grid, dtype=float)
+    valid = np.isfinite(values)
+    filled = np.where(valid, values, 0.0)
+    weights = valid.astype(float)
+    smoothed_values = gaussian_filter(filled, sigma=float(sigma))
+    smoothed_weights = gaussian_filter(weights, sigma=float(sigma))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        smoothed = smoothed_values / smoothed_weights
+    smoothed[smoothed_weights < float(minimum_weight)] = np.nan
+    return smoothed
+
+
+def _binary_efield_contour_mask(
+    grid,
+    counts,
+    smoothed,
+    threshold,
+    minimum_stations=3,
+    minimum_neighbor_bins=2,
+):
+    """Build connected binary regions for closed E-field boundaries."""
+    sampled = np.asarray(counts) >= int(minimum_stations)
+    sampled_support = binary_dilation(
+        sampled, structure=np.ones((3, 3), dtype=bool), iterations=1
+    )
+    qualifying = (
+        np.isfinite(smoothed)
+        & (smoothed >= float(threshold))
+        & sampled_support
+    )
+    qualifying = binary_closing(
+        qualifying, structure=np.ones((3, 3), dtype=bool), iterations=1
+    )
+    qualifying = binary_fill_holes(qualifying)
+
+    labels, number = label(qualifying, structure=np.ones((3, 3), dtype=bool))
+    retained = np.zeros_like(qualifying, dtype=bool)
+    for component in range(1, number + 1):
+        component_mask = labels == component
+        if int(component_mask.sum()) >= int(minimum_neighbor_bins):
+            retained |= component_mask
+    return retained
+
+
+def plot_efield_threshold_contour(
+    ax,
+    longitudes,
+    latitudes,
+    magnitudes_mV_per_km,
+    threshold_mV_per_km,
+    bounds=CONUS_BOUNDS,
+    bin_size_deg=1.0,
+    smoothing_sigma=1.5,
+    statistic="percentile",
+    percentile=75.0,
+    minimum_stations=3,
+    minimum_neighbor_bins=2,
+    color="#0066FF",
+):
+    """Draw closed boundaries of connected, above-threshold E-field regions."""
+    try:
+        threshold = float(threshold_mV_per_km)
+        bin_size = float(bin_size_deg)
+    except (TypeError, ValueError):
+        return None
+    if (
+        not np.isfinite(threshold)
+        or threshold <= 0.0
+        or not np.isfinite(bin_size)
+        or bin_size <= 0.0
+    ):
+        return None
+
+    longitude = np.asarray(longitudes, dtype=float)
+    latitude = np.asarray(latitudes, dtype=float)
+    magnitude = np.asarray(magnitudes_mV_per_km, dtype=float)
+    valid = np.isfinite(longitude) & np.isfinite(latitude) & np.isfinite(magnitude)
+    if valid.sum() < 4:
+        return None
+
+    west, east, south, north = bounds
+    lon_edges, lat_edges, binned, counts = _bin_efield_statistics(
+        longitude[valid], latitude[valid], magnitude[valid],
+        bounds=bounds, bin_size_deg=bin_size,
+        statistic=statistic, percentile=percentile,
+    )
+    if not np.isfinite(binned).any():
+        return None
+    smoothed = _smooth_sparse_efield_grid(binned, sigma=smoothing_sigma)
+    if not np.isfinite(smoothed).any():
+        return None
+    contour_mask = _binary_efield_contour_mask(
+        binned,
+        counts,
+        smoothed,
+        threshold,
+        minimum_stations=minimum_stations,
+        minimum_neighbor_bins=minimum_neighbor_bins,
+    )
+    if not contour_mask.any():
+        return None
+
+    lon_centers = 0.5 * (lon_edges[:-1] + lon_edges[1:])
+    lat_centers = 0.5 * (lat_edges[:-1] + lat_edges[1:])
+    padded_mask = np.pad(contour_mask.astype(float), 1, constant_values=0.0)
+    padded_lon = np.concatenate(
+        ([lon_centers[0] - bin_size], lon_centers,
+         [lon_centers[-1] + bin_size])
+    )
+    padded_lat = np.concatenate(
+        ([lat_centers[0] - bin_size], lat_centers,
+         [lat_centers[-1] + bin_size])
+    )
+    try:
+        contour_set = ax.contour(
+            padded_lon,
+            padded_lat,
+            padded_mask,
+            levels=[0.5],
+            colors=[color],
+            linewidths=0.8,
+            transform=ccrs.PlateCarree(),
+            zorder=3,
+        )
+    except (ValueError, RuntimeError):
+        return None
+    # Keep the complete threshold contour set, including paths that intersect
+    # the CONUS map boundary. This matches the standalone smoothed-bin figure.
+    return contour_set
 
 
 def _valid_vertical_component(data):
@@ -61,6 +329,10 @@ def _emtf_site_fields(smag, mt_data_folder, dT=60, bounds=None):
         if bounds is not None:
             west, east, south, north = bounds
             if not (west <= site_longitude <= east and south <= site_latitude <= north):
+                continue
+            if bounds == CONUS_BOUNDS and not _is_conus_location(
+                site_longitude, site_latitude
+            ):
                 continue
         nearest = min(
             station_data,
@@ -280,7 +552,15 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                     map_times=None, case_mt_site=None, case_xlim=None,
                     case_top_stations=None, case_efield_ylim=None,
                     case_efield_quiver_limit=5000.0,
-                    case_efield_exclude_sites=None):
+                    case_efield_exclude_sites=None,
+                    case_baseline_hours=2.0,
+                    efield_contour_bin_size_deg=1.0,
+                    efield_contour_threshold_mV_per_km=0.25,
+                    efield_contour_smoothing_sigma=1.5,
+                    efield_bin_statistic="percentile",
+                    efield_bin_percentile=75.0,
+                    efield_min_stations_per_bin=3,
+                    efield_min_neighbor_bins=2):
     """Create the case-study time series plus two E-field map panels."""
     station_colors = {
         "FRD": "#4c78a8",
@@ -309,12 +589,18 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                               if name in data_by_station]
         top_stations = reference_stations or list(data_by_station)
 
+    if case_xlim is None:
+        case_xlim = (
+            event.replace(hour=17, minute=0, second=0, microsecond=0),
+            event.replace(hour=20, minute=0, second=0, microsecond=0),
+        )
+    reference_time = case_xlim[0]
+    baseline_start = reference_time - dt.timedelta(hours=float(case_baseline_hours))
+
     case_data = data_by_station[case_station]
-    magnetic_north = detrend_magnetic_field(case_data["N_geo"].to_numpy(), dT=dT)
-    magnetic_east = detrend_magnetic_field(case_data["E_geo"].to_numpy(), dT=dT)
-    
-    magnetic_north = magnetic_north - np.median(magnetic_north[0:30])
-    magnetic_east = magnetic_east - np.median(magnetic_east[0:30])
+    magnetic_north, magnetic_east = _case_baseline_corrected_components(
+        case_data, baseline_start, reference_time
+    )
             
     site = None
     if case_mt_site:
@@ -342,6 +628,8 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
             dT=dT,
             MT_data_folder=mt_data_folder,
         )
+    e_north = _reference_series_at_time(e_north, case_data["tval"], reference_time)
+    e_east = _reference_series_at_time(e_east, case_data["tval"], reference_time)
     if site is None:
         raise RuntimeError(f"No EMTF response found for case station '{case_station}'.")
 
@@ -362,9 +650,12 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         e_north_55, e_east_55 = vaq55_site.convolve_fft(
             magnetic_north, magnetic_east, dt=dT
         )
-
-    B = np.sqrt(magnetic_north ** 2 + magnetic_east ** 2)
-    B = np.nanmean(B[: min(20, len(B))]) - B
+        e_north_55 = _reference_series_at_time(
+            e_north_55, case_data["tval"], reference_time
+        )
+        e_east_55 = _reference_series_at_time(
+            e_east_55, case_data["tval"], reference_time
+        )
 
     apply_style = {
         "font.family": "DejaVu Sans",
@@ -407,19 +698,16 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         ax_top.set_ylim(1e-7, 1e-2)
         ax_top.grid(axis="y", which="major", linestyle=":", color="0.55", linewidth=0.45)
         ax_top.axvline(event, color="0.15", lw=0.7)
-        if case_xlim is None:
-            case_xlim = (
-                event.replace(hour=17, minute=0, second=0, microsecond=0),
-                event.replace(hour=20, minute=0, second=0, microsecond=0),
-            )
         ax_top.set_xlim(case_xlim)
         mag_ax = ax_top.twinx()
         for station in top_stations:
             data = data_by_station[station]
-            north = detrend_magnetic_field(data["N_geo"].to_numpy(), dT=dT)
-            east = detrend_magnetic_field(data["E_geo"].to_numpy(), dT=dT)
+            north, east = _case_baseline_corrected_components(
+                data, baseline_start, reference_time
+            )
             field = np.sqrt(north ** 2 + east ** 2)
-            field = np.nanmean(field[: min(20, len(field))]) - field
+            field = _reference_series_at_time(field, data["tval"], reference_time)
+            field *= -1.0
             mag_ax.plot(
                 data.tval,
                 field,
@@ -438,47 +726,42 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         ax_bottom.grid(axis="y", linestyle=":", color="0.55", linewidth=0.45)
         e_magnitude = np.hypot(e_east, e_north)
         primary_site_name = str(getattr(site, "name", None) or case_mt_site or "MT").upper()
-        ax_bottom.plot(
+        primary_plot_magnitude = np.where(e_magnitude > 0.0, e_magnitude, np.nan)
+        primary_line, = ax_bottom.plot(
             case_data.tval,
-            e_east,
+            primary_plot_magnitude,
             color="#1f77b4",
             lw=1.0,
             ls="-",
-            label=rf"{primary_site_name}",
-        )
-        ax_bottom.plot(
-            case_data.tval,
-            e_north,
-            color="#1fb444",
-            lw=1.0,
-            ls="-",
-            label=rf"{primary_site_name}",
+            label=rf"$|\mathcal{{E}}|$ ({primary_site_name})",
         )
         magnitude_series = [e_magnitude]
-        legend_handles = [
-            plt.Line2D([], [], color="#1f77b4",
-                       label=rf"$|\mathcal{{E}}|$ ({primary_site_name})")
-        ]
-        # if vaq55_site is not None:
-        #     e_magnitude_55 = np.hypot(e_east_55, e_north_55)
-        #     ax_bottom.plot(
-        #         case_data.tval,
-        #         e_magnitude_55,
-        #         color="#d62728",
-        #         lw=1.0,
-        #         ls="-",
-        #         label=r"VAQ55",
-        #     )
-        #     magnitude_series.append(e_magnitude_55)
-        #     legend_handles.append(
-        #         plt.Line2D([], [], color="#d62728", label=r"$|\mathcal{E}|$ (VAQ55)")
-        #     )
+        legend_handles = [primary_line]
+        if e_north_55 is not None and e_east_55 is not None:
+            e_magnitude_55 = np.hypot(e_east_55, e_north_55)
+            secondary_plot_magnitude = np.where(
+                e_magnitude_55 > 0.0, e_magnitude_55, np.nan
+            )
+            secondary_line, = ax_bottom.plot(
+                case_data.tval,
+                secondary_plot_magnitude,
+                color="#d62728",
+                lw=1.0,
+                ls="-",
+                label=r"$|\mathcal{E}|$ (VAQ55)",
+            )
+            magnitude_series.append(e_magnitude_55)
+            legend_handles.append(secondary_line)
         ax_bottom.set_ylabel(r"$|\mathcal{E}|$ (mV/km)")
         finite_magnitude = np.concatenate([
             np.asarray(series)[np.isfinite(series)] for series in magnitude_series
         ])
-        ax_bottom.set_ylim(-1000, 2000)
-        positive_magnitude = finite_magnitude[finite_magnitude > 0.0]
+        ax_bottom.set_yscale("log")
+        if case_efield_ylim is None:
+            ax_bottom.set_ylim(1e-1, 2000)
+        else:
+            lower, upper = case_efield_ylim
+            ax_bottom.set_ylim(max(float(lower), 1e-1), upper)
         # ax_bottom.set_yscale("log")
         # if positive_magnitude.size:
         #     magnitude_min = float(np.min(positive_magnitude))
@@ -497,7 +780,7 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         ax_bottom.set_xlabel(f"UT on {event:%Y-%m-%d}")
         ax_bottom.legend(
             handles=legend_handles,
-            loc="upper left",
+            loc="upper right",
             frameon=False,
             handlelength=1.6,
         )
@@ -589,12 +872,13 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                         fontweight="bold", va="top")
 
             lon, lat, ex, ey = [], [], [], []
+            contour_lon, contour_lat, contour_magnitude = [], [], []
             reference = 500.0  # mV/km
             excluded_sites = {
                 str(name).upper() for name in (case_efield_exclude_sites or [])
             }
             for site_item, station_name, data in map_fields:
-                if data.empty or site_item.rating < 3:
+                if data.empty:
                     continue
                 site_name = str(getattr(site_item, "name", "")).upper()
                 if site_name in excluded_sites:
@@ -608,17 +892,41 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                 if not (np.isfinite(east_value) and np.isfinite(north_value)):
                     continue
                 magnitude = np.hypot(east_value, north_value)
+                site_lon = (float(site_item.longitude) + 180.0) % 360.0 - 180.0
+                site_lat = float(site_item.latitude)
+                contour_lon.append(site_lon)
+                contour_lat.append(site_lat)
+                contour_magnitude.append(magnitude)
+                # Keep quivers restricted to stations with the requested
+                # quality rating, while contours use every valid response
+                # site so regional interpolation is not undersampled.
+                if site_item.rating < 3:
+                    continue
                 if (case_efield_quiver_limit is not None and
                         magnitude > float(case_efield_quiver_limit)):
                     continue
-                site_lon = (float(site_item.longitude) + 180.0) % 360.0 - 180.0
-                site_lat = float(site_item.latitude)
                 # Compare in physical units before normalizing by the
                 # 500 mV/km reference used by the quiver scale.
                 lon.append(site_lon)
                 lat.append(site_lat)
                 ex.append(east_value / reference)
                 ey.append(north_value / reference)
+
+            if index == 1:
+                plot_efield_threshold_contour(
+                    map_ax,
+                    contour_lon,
+                    contour_lat,
+                    contour_magnitude,
+                    efield_contour_threshold_mV_per_km,
+                    bounds=CONUS_BOUNDS,
+                    bin_size_deg=efield_contour_bin_size_deg,
+                    smoothing_sigma=efield_contour_smoothing_sigma,
+                    statistic=efield_bin_statistic,
+                    percentile=efield_bin_percentile,
+                    minimum_stations=efield_min_stations_per_bin,
+                    minimum_neighbor_bins=efield_min_neighbor_bins,
+                )
                 
             quiver = map_ax.quiver(
                 np.asarray(lon), np.asarray(lat),

@@ -70,6 +70,18 @@ def event_base(event):
     )
 
 
+def cache_covers_window(filename, dates):
+    """Return True when a cached SuperMAG CSV spans the requested window."""
+    if not os.path.exists(filename):
+        return False
+    try:
+        times = pd.read_csv(filename, usecols=["tval"], parse_dates=["tval"])["tval"]
+    except (OSError, ValueError, pd.errors.EmptyDataError):
+        return False
+    times = times.dropna()
+    return not times.empty and times.min() <= dates[0] and times.max() >= dates[1]
+
+
 def ensure_dbdt(smag):
     """Add the magnetic-field derivative expected by stack_plots."""
     if "dBdt" in smag.sm_data.columns:
@@ -147,6 +159,7 @@ def export_station_db_data(smag, stations, output_root, event, dates):
     ]
     for station in stations:
         data = smag.sm_data[smag.sm_data["iaga"] == station].copy()
+        data = data[data["tval"].between(dates[0], dates[1])]
         if data.empty:
             continue
         available = [column for column in columns if column in data.columns]
@@ -416,6 +429,14 @@ def generate_event_figures(
     case_efield_ylim=None,
     case_efield_quiver_limit=5000.0,
     case_efield_exclude_sites=None,
+    case_baseline_hours=2.0,
+    efield_contour_bin_size_deg=1.0,
+    efield_contour_threshold_mV_per_km=0.25,
+    efield_contour_smoothing_sigma=1.5,
+    efield_bin_statistic="percentile",
+    efield_bin_percentile=75.0,
+    efield_min_stations_per_bin=3,
+    efield_min_neighbor_bins=2,
     case_station=None,
     case_map_times=None,
     case_mt_site=None,
@@ -431,12 +452,30 @@ def generate_event_figures(
     os.makedirs(figures, exist_ok=True)
     setup(base)
     goes = CachedGOES(dates, data_dir=goes_data_dir)
+    case_reference_time = (
+        case_xlim[0]
+        if case_xlim is not None
+        else event.replace(hour=17, minute=0, second=0, microsecond=0)
+    )
+    case_baseline_start = case_reference_time - dt.timedelta(
+        hours=float(case_baseline_hours)
+    )
+    magnetic_dates = [
+        min(dates[0], case_baseline_start),
+        dates[1],
+    ]
+    raw_baseline = "none" if mag_baseline == "none" else mag_baseline
+    magnetic_base = base + os.sep
+    cache_name = (
+        "supermag-raw.csv" if raw_baseline == "none" else "supermag.csv"
+    )
+    if not cache_covers_window(os.path.join(base, cache_name), magnetic_dates):
+        magnetic_base = os.path.join(base, "case-study-extended") + os.sep
     # Fetch the full inventory by default.  The magnetic plot can use a
     # separately ordered subset without restricting the map data.
-    raw_baseline = "none" if mag_baseline == "none" else mag_baseline
     smag = SuperMAG(
-        base + os.sep,
-        dates,
+        magnetic_base,
+        magnetic_dates,
         uid=supermag_user,
         stations=fetch_stations if fetch_stations else [],
         baseline=raw_baseline,
@@ -448,8 +487,8 @@ def generate_event_figures(
             smag.sm_data["iaga"].dropna().astype(str).unique().tolist()
         )
         smag_dB = SuperMAG(
-            base + os.sep,
-            dates,
+            magnetic_base,
+            magnetic_dates,
             uid=supermag_user,
             stations=yearly_stations,
             baseline=None,
@@ -558,6 +597,14 @@ def generate_event_figures(
         case_efield_ylim=case_efield_ylim,
         case_efield_quiver_limit=case_efield_quiver_limit,
         case_efield_exclude_sites=case_efield_exclude_sites,
+        case_baseline_hours=case_baseline_hours,
+        efield_contour_bin_size_deg=efield_contour_bin_size_deg,
+        efield_contour_threshold_mV_per_km=efield_contour_threshold_mV_per_km,
+        efield_contour_smoothing_sigma=efield_contour_smoothing_sigma,
+        efield_bin_statistic=efield_bin_statistic,
+        efield_bin_percentile=efield_bin_percentile,
+        efield_min_stations_per_bin=efield_min_stations_per_bin,
+        efield_min_neighbor_bins=efield_min_neighbor_bins,
     )
     print(smag)
     smag.stations = usable_stations
@@ -769,6 +816,28 @@ def main():
         ),
         case_efield_exclude_sites=plot_config.get(
             "case_efield_exclude_sites", []
+        ),
+        case_baseline_hours=plot_config.get("case_baseline_hours", 2.0),
+        efield_contour_bin_size_deg=plot_config.get(
+            "efield_contour_bin_size_deg", 1.0
+        ),
+        efield_contour_threshold_mV_per_km=plot_config.get(
+            "efield_contour_threshold_mV_per_km", 0.25
+        ),
+        efield_contour_smoothing_sigma=plot_config.get(
+            "efield_contour_smoothing_sigma", 1.5
+        ),
+        efield_bin_statistic=plot_config.get(
+            "efield_bin_statistic", "percentile"
+        ),
+        efield_bin_percentile=plot_config.get(
+            "efield_bin_percentile", 75.0
+        ),
+        efield_min_stations_per_bin=plot_config.get(
+            "efield_min_stations_per_bin", 3
+        ),
+        efield_min_neighbor_bins=plot_config.get(
+            "efield_min_neighbor_bins", 2
         ),
         share_stations=output_config.get("share_stations", []),
         share_efield_sites=output_config.get("share_efield_sites", False),
