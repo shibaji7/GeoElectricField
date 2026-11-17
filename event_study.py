@@ -428,6 +428,7 @@ def generate_event_figures(
     case_top_stations=None,
     case_efield_ylim=None,
     case_efield_quiver_limit=5000.0,
+    case_efield_panel_c_threshold_mV_per_km=500.0,
     case_efield_exclude_sites=None,
     case_baseline_hours=2.0,
     efield_contour_bin_size_deg=1.0,
@@ -596,6 +597,9 @@ def generate_event_figures(
         case_top_stations=case_top_stations,
         case_efield_ylim=case_efield_ylim,
         case_efield_quiver_limit=case_efield_quiver_limit,
+        case_efield_panel_c_threshold_mV_per_km=(
+            case_efield_panel_c_threshold_mV_per_km
+        ),
         case_efield_exclude_sites=case_efield_exclude_sites,
         case_baseline_hours=case_baseline_hours,
         efield_contour_bin_size_deg=efield_contour_bin_size_deg,
@@ -813,6 +817,9 @@ def main():
         case_efield_ylim=plot_config.get("case_efield_ylim"),
         case_efield_quiver_limit=plot_config.get(
             "case_efield_quiver_limit", 5000.0
+        ),
+        case_efield_panel_c_threshold_mV_per_km=plot_config.get(
+            "case_efield_panel_c_threshold_mV_per_km", 500.0
         ),
         case_efield_exclude_sites=plot_config.get(
             "case_efield_exclude_sites", []

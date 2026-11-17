@@ -2,11 +2,13 @@
 
 import glob
 import datetime as dt
+import csv
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.feature.nightshade import Nightshade
 import matplotlib.dates as mdates
 from matplotlib.path import Path
+from matplotlib.patches import PathPatch
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -44,6 +46,16 @@ _CONUS_PATH = Path(CONUS_POLYGON)
 def _is_conus_location(longitude, latitude):
     """Return whether a longitude/latitude point lies in the CONUS mask."""
     return bool(_CONUS_PATH.contains_point((float(longitude), float(latitude))))
+
+
+def _clip_contour_to_conus(contour_set, ax):
+    """Clip a geographic contour collection to the CONUS polygon."""
+    clip_path = PathPatch(
+        _CONUS_PATH,
+        transform=ccrs.PlateCarree()._as_mpl_transform(ax),
+    )
+    for collection in contour_set.collections:
+        collection.set_clip_path(clip_path)
 
 
 def _baseline_correct_component(data, component, baseline_start, reference_time):
@@ -280,6 +292,7 @@ def plot_efield_threshold_contour(
             transform=ccrs.PlateCarree(),
             zorder=3,
         )
+        _clip_contour_to_conus(contour_set, ax)
     except (ValueError, RuntimeError):
         return None
     # Keep the complete threshold contour set, including paths that intersect
@@ -552,6 +565,7 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                     map_times=None, case_mt_site=None, case_xlim=None,
                     case_top_stations=None, case_efield_ylim=None,
                     case_efield_quiver_limit=5000.0,
+                    case_efield_panel_c_threshold_mV_per_km=500.0,
                     case_efield_exclude_sites=None,
                     case_baseline_hours=2.0,
                     efield_contour_bin_size_deg=1.0,
@@ -633,29 +647,29 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
     if site is None:
         raise RuntimeError(f"No EMTF response found for case station '{case_station}'.")
 
-    # Calculate a second E-field response at VAQ55 using the same magnetic
-    # station and magnetic perturbation time series.
-    vaq55_site = None
-    e_north_55 = e_east_55 = None
-    site_name = str(getattr(site, "name", "")).upper()
-    if site_name != "VAQ55":
-        available_sites = candidates if case_mt_site else _load_emtf_sites(mt_data_folder)
-        vaq55_site = next(
-            (candidate for candidate in available_sites
-             if str(getattr(candidate, "name", "")).upper() == "VAQ55"),
-            None,
-        )
-        if vaq55_site is None:
-            raise RuntimeError(f"EMTF site 'VAQ55' was not found under {mt_data_folder}.")
-        e_north_55, e_east_55 = vaq55_site.convolve_fft(
-            magnetic_north, magnetic_east, dt=dT
-        )
-        e_north_55 = _reference_series_at_time(
-            e_north_55, case_data["tval"], reference_time
-        )
-        e_east_55 = _reference_series_at_time(
-            e_east_55, case_data["tval"], reference_time
-        )
+    # # Calculate a second E-field response at VAQ55 using the same magnetic
+    # # station and magnetic perturbation time series.
+    # vaq55_site = None
+    # e_north_55 = e_east_55 = None
+    # site_name = str(getattr(site, "name", "")).upper()
+    # if site_name != "VAQ55":
+    #     available_sites = candidates if case_mt_site else _load_emtf_sites(mt_data_folder)
+    #     vaq55_site = next(
+    #         (candidate for candidate in available_sites
+    #          if str(getattr(candidate, "name", "")).upper() == "VAQ55"),
+    #         None,
+    #     )
+    #     if vaq55_site is None:
+    #         raise RuntimeError(f"EMTF site 'VAQ55' was not found under {mt_data_folder}.")
+    #     e_north_55, e_east_55 = vaq55_site.convolve_fft(
+    #         magnetic_north, magnetic_east, dt=dT
+    #     )
+    #     e_north_55 = _reference_series_at_time(
+    #         e_north_55, case_data["tval"], reference_time
+    #     )
+    #     e_east_55 = _reference_series_at_time(
+    #         e_east_55, case_data["tval"], reference_time
+    #     )
 
     apply_style = {
         "font.family": "DejaVu Sans",
@@ -737,26 +751,26 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         )
         magnitude_series = [e_magnitude]
         legend_handles = [primary_line]
-        if e_north_55 is not None and e_east_55 is not None:
-            e_magnitude_55 = np.hypot(e_east_55, e_north_55)
-            secondary_plot_magnitude = np.where(
-                e_magnitude_55 > 0.0, e_magnitude_55, np.nan
-            )
-            secondary_line, = ax_bottom.plot(
-                case_data.tval,
-                secondary_plot_magnitude,
-                color="#d62728",
-                lw=1.0,
-                ls="-",
-                label=r"$|\mathcal{E}|$ (VAQ55)",
-            )
-            magnitude_series.append(e_magnitude_55)
-            legend_handles.append(secondary_line)
+        # if e_north_55 is not None and e_east_55 is not None:
+        #     e_magnitude_55 = np.hypot(e_east_55, e_north_55)
+        #     secondary_plot_magnitude = np.where(
+        #         e_magnitude_55 > 0.0, e_magnitude_55, np.nan
+        #     )
+        #     secondary_line, = ax_bottom.plot(
+        #         case_data.tval,
+        #         secondary_plot_magnitude,
+        #         color="#d62728",
+        #         lw=1.0,
+        #         ls="-",
+        #         label=r"$|\mathcal{E}|$ (VAQ55)",
+        #     )
+        #     magnitude_series.append(e_magnitude_55)
+        #     legend_handles.append(secondary_line)
         ax_bottom.set_ylabel(r"$|\mathcal{E}|$ (mV/km)")
         finite_magnitude = np.concatenate([
             np.asarray(series)[np.isfinite(series)] for series in magnitude_series
         ])
-        ax_bottom.set_yscale("log")
+        # ax_bottom.set_yscale("log")
         if case_efield_ylim is None:
             ax_bottom.set_ylim(1e-1, 2000)
         else:
@@ -843,6 +857,8 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
             smag, mt_data_folder, dT=dT, bounds=CONUS_BOUNDS
         )
         map_axes = []
+        panel_c_excluded_sites = set()
+        panel_c_exclusion_rows = []
         map_projection = ccrs.LambertConformal(
             central_longitude=-96.0,
             central_latitude=39.0,
@@ -894,6 +910,32 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                 magnitude = np.hypot(east_value, north_value)
                 site_lon = (float(site_item.longitude) + 180.0) % 360.0 - 180.0
                 site_lat = float(site_item.latitude)
+                if index == 0 and (
+                    case_efield_panel_c_threshold_mV_per_km is not None
+                    and magnitude > float(case_efield_panel_c_threshold_mV_per_km)
+                ):
+                    panel_c_excluded_sites.add(site_name)
+                    try:
+                        rating = float(getattr(site_item, "rating", np.nan))
+                    except (TypeError, ValueError):
+                        rating = np.nan
+                    panel_c_exclusion_rows.append({
+                        "emtf_site": site_name,
+                        "nearest_supermag": station_name,
+                        "latitude": site_lat,
+                        "longitude": site_lon,
+                        "mt_rating": rating,
+                        "map_time_utc": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "E_north_mV_per_km": north_value,
+                        "E_east_mV_per_km": east_value,
+                        "E_magnitude_mV_per_km": magnitude,
+                        "threshold_mV_per_km": float(
+                            case_efield_panel_c_threshold_mV_per_km
+                        ),
+                    })
+                    continue
+                if index == 1 and site_name in panel_c_excluded_sites:
+                    continue
                 contour_lon.append(site_lon)
                 contour_lat.append(site_lat)
                 contour_magnitude.append(magnitude)
@@ -945,6 +987,18 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                     angle=90
                 )
                 qk.text.set_rotation(90)
+
+        exclusion_file = os.path.splitext(output)[0] + "-panel-c-excluded-sites.csv"
+        with open(exclusion_file, "w", newline="", encoding="utf-8") as stream:
+            fieldnames = [
+                "emtf_site", "nearest_supermag", "latitude", "longitude",
+                "mt_rating", "map_time_utc", "E_north_mV_per_km",
+                "E_east_mV_per_km", "E_magnitude_mV_per_km",
+                "threshold_mV_per_km",
+            ]
+            writer = csv.DictWriter(stream, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(panel_c_exclusion_rows)
 
         for ax in (ax_top, ax_bottom):
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))

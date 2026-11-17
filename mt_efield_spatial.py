@@ -355,7 +355,15 @@ def decorate_map(ax, bounds):
     ax.gridlines(draw_labels=False, linewidth=0.25, color="0.75", linestyle=":")
 
 
-def plot_spatial_response(records, periods, rho_period, bounds, output, quiver_reference):
+def plot_spatial_response(
+    records,
+    periods,
+    rho_period,
+    bounds,
+    output,
+    quiver_reference,
+    efield_panel_threshold_mV_per_km=None,
+):
     """Render a 2x3 period-aligned resistivity/E-field figure."""
     del rho_period  # all requested periods are now shown in the top row.
     projection = ccrs.LambertConformal(
@@ -428,11 +436,21 @@ def plot_spatial_response(records, periods, rho_period, bounds, output, quiver_r
         for column, period in enumerate(periods):
             ax = axes[3 + column]
             decorate_map(ax, bounds)
-            vectors = [
-                item for item in records
-                if np.isfinite(item["E"][period][0])
-                and np.isfinite(item["E"][period][1])
-            ]
+            vectors = []
+            for item in records:
+                north, east = item["E"][period]
+                if not (np.isfinite(north) and np.isfinite(east)):
+                    continue
+                # Keep the 60 s panel unchanged.  Apply the optional
+                # physical-magnitude cutoff only to panels (e) and (f).
+                if (
+                    column >= 1
+                    and efield_panel_threshold_mV_per_km is not None
+                    and np.hypot(north, east)
+                    > efield_panel_threshold_mV_per_km
+                ):
+                    continue
+                vectors.append(item)
             quiver = None
             if vectors:
                 quiver = ax.quiver(
@@ -502,7 +520,11 @@ def main():
     parser.add_argument("--region", default=None)
     parser.add_argument("--min-rating", type=float, default=3.0)
     parser.add_argument("--dT", type=float, default=60.0)
-    parser.add_argument("--quiver-reference", type=float, default=250.0)
+    parser.add_argument("--quiver-reference", type=float, default=None)
+    parser.add_argument(
+        "--efield-panel-threshold", type=float, default=None,
+        help="Maximum E-field magnitude for panels (e) and (f), in mV/km.",
+    )
     parser.add_argument(
         "--peak-time", default=None,
         help="Peak timestamp as ISO datetime or HH:MM; defaults to event time.",
@@ -565,7 +587,21 @@ def main():
         output = output_root / event.strftime("%Y-%m-%d-%H-%M") / "mt-efield-spatial.png"
 
     plot_spatial_response(
-        records, periods, rho_period, bounds, output, args.quiver_reference
+        records,
+        periods,
+        rho_period,
+        bounds,
+        output,
+        quiver_reference=(
+            args.quiver_reference
+            if args.quiver_reference is not None
+            else float(plot_config.get("mt_quiver_reference_mV_per_km", 250.0))
+        ),
+        efield_panel_threshold_mV_per_km=(
+            args.efield_panel_threshold
+            if args.efield_panel_threshold is not None
+            else plot_config.get("mt_efield_panel_threshold_mV_per_km")
+        ),
     )
     peak_output, peak_frame = save_peak_estimates(
         records, periods, peak_time, output
@@ -583,6 +619,19 @@ def main():
     print(f"sites: {len(records)}")
     print(f"periods: {', '.join(f'{period:g} s' for period in periods)}")
     print(f"rho period: {rho_period:g} s")
+    panel_threshold = (
+        args.efield_panel_threshold
+        if args.efield_panel_threshold is not None
+        else plot_config.get("mt_efield_panel_threshold_mV_per_km")
+    )
+    if panel_threshold is not None:
+        print(f"panels (e)-(f) E-field threshold: {float(panel_threshold):g} mV/km")
+    quiver_reference = (
+        args.quiver_reference
+        if args.quiver_reference is not None
+        else float(plot_config.get("mt_quiver_reference_mV_per_km", 250.0))
+    )
+    print(f"quiver reference: {quiver_reference:g} mV/km")
 
 
 if __name__ == "__main__":

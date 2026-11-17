@@ -45,7 +45,11 @@ sys.path.extend(
     ]
 )
 
-from efield import _emtf_site_fields, _is_conus_location  # noqa: E402
+from efield import (  # noqa: E402
+    _clip_contour_to_conus,
+    _emtf_site_fields,
+    _is_conus_location,
+)
 from get_mag_data import SuperMAG  # noqa: E402
 
 
@@ -314,7 +318,7 @@ def main():
                 ([lat_centers[0] - bin_size_y], lat_centers,
                  [lat_centers[-1] + bin_size_y])
             )
-            axis.contour(
+            contour_set = axis.contour(
                 padded_lon,
                 padded_lat,
                 padded_mask,
@@ -323,6 +327,7 @@ def main():
                 linewidths=0.8,
                 transform=ccrs.PlateCarree(),
             )
+            _clip_contour_to_conus(contour_set, axis)
         axis.set_extent(CONUS_BOUNDS, crs=ccrs.PlateCarree())
         axis.coastlines(resolution="50m", color="0.25", linewidth=0.6)
         axis.add_feature(cfeature.BORDERS, edgecolor="0.25", linewidth=0.4)
