@@ -730,7 +730,7 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
                 color=station_colors.get(station, "#333333"),
                 label=station,
             )
-        mag_ax.set_ylabel(r"$\Delta B$ (nT)")
+        mag_ax.set_ylabel(r"$\Delta\vec{B}$ (nT)")
         mag_ax.set_ylim(-150, 50)
         mag_ax.axvline(event, color="0.15", lw=0.7)
         mag_ax.legend(loc="lower right", ncol=3, frameon=False,
@@ -747,7 +747,7 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
             color="#1f77b4",
             lw=1.0,
             ls="-",
-            label=rf"$|\mathcal{{E}}|$ ({primary_site_name})",
+            label=rf"$|\vec{{\mathcal{{E}}}}|$ ({primary_site_name})",
         )
         magnitude_series = [e_magnitude]
         legend_handles = [primary_line]
@@ -762,11 +762,11 @@ def plot_case_study(goes, smag, event, dates, stations, case_station, output,
         #         color="#d62728",
         #         lw=1.0,
         #         ls="-",
-        #         label=r"$|\mathcal{E}|$ (VAQ55)",
+        #         label=r"$|\vec{\mathcal{E}}|$ (VAQ55)",
         #     )
         #     magnitude_series.append(e_magnitude_55)
         #     legend_handles.append(secondary_line)
-        ax_bottom.set_ylabel(r"$|\mathcal{E}|$ (mV/km)")
+        ax_bottom.set_ylabel(r"$|\vec{\mathcal{E}}|$ (mV/km)")
         finite_magnitude = np.concatenate([
             np.asarray(series)[np.isfinite(series)] for series in magnitude_series
         ])

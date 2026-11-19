@@ -328,7 +328,7 @@ def stack_mag_mod_plots(
                 ha="right", va="top", fontsize=12)
         ax.text(0.02, 0.93, f"({chr(103 + i)})", transform=ax.transAxes,
                 fontsize=12, va="top", fontweight="bold")
-        ax.set_ylabel(r"$\Delta B_{x,y}$ (nT)", fontsize=12, labelpad=8)
+        ax.set_ylabel(r"$\Delta\vec{B}$ (nT)", fontsize=12, labelpad=8)
         lat_key = "mlat" if "mlat" in data.columns else "glat"
         lon_key = "mlon" if "mlon" in data.columns else "glon"
         if (lat_key in data.columns and lon_key in data.columns
